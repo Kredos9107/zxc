@@ -6,7 +6,6 @@ GPIO.setup(led, GPIO.OUT)
 state=0
 period = 1.0
 while True:
-    GPIO.output(led, state)
+    GPIO.output(led, not GPIO.input)
     state = not state
     time.sleep(period)
-    
