@@ -14,6 +14,10 @@ while True:
         time.sleep(sleep_time)
         num = num + 1
         print(num, dec2bin(num))
+    if GPIO.input(10):
+        time.sleep(sleep_time)
+        num = num - 1
+        print(num, dec2bin(num))
     GPIO.output(leds, dec2bin(num))
     if GPIO.input(9) and GPIO.input(10):
         num=254
