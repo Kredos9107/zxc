@@ -1,5 +1,4 @@
 import RPi.GPIO as GPIO
-import time
 
 class R2R_DAC:
     def __init__(self, gpio_bits, dynamic_range, verbose = False):
@@ -14,15 +13,11 @@ class R2R_DAC:
         k=[int(bit) for bit in bin(number)[2:].zfill(8)]
         GPIO.output(self.gpio_bits, k)
     def set_voltage(self, voltage):
-        voltage = int(voltage / dynamic_range * 255)
+        voltage = int(voltage / self.dynamic_range * 255)
         self.set_number(int(voltage))
     def deinit(self):
         GPIO.output(self.gpio_bits, 0)
         GPIO.cleanup()
-
-
-dynamic_range = 3.182
-
 if __name__ == "__main__":
     try:
         dac = R2R_DAC([16,20,21,25,26,17,27,22], 3.183, True)
@@ -36,4 +31,4 @@ if __name__ == "__main__":
                 print("Вы ввели не число. Попробуйте ещё раз\n")
 
     finally:
-        dac.deinit()
+       dac.deinit()
