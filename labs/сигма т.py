@@ -1,21 +1,26 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-# твои данные
+# Данные
 T = np.array([293.1, 297.9, 302.9, 308.0, 312.8, 317.8, 322.9, 327.6])
 sigma = np.array([66.40, 64.86, 63.86, 62.59, 62.23, 61.59, 61.14, 60.59])
+sigma_err = np.array([1.63, 1.59, 1.57, 1.54, 1.53, 1.51, 1.50, 1.49])
 
-dSdT = -0.1597  # из графика
+# Линейная аппроксимация
+coeffs = np.polyfit(T, sigma, 1)
+poly = np.poly1d(coeffs)
+T_fit = np.linspace(290, 330, 100)
+sigma_fit = poly(T_fit)
 
-q = -T * dSdT
-U_over_F = sigma - T * dSdT  # это sigma + |dSdT|*T, т.к. dSdT отрицательный
+# График
+plt.figure(figsize=(8, 5))
+plt.errorbar(T, sigma, yerr=sigma_err, fmt='o', capsize=2, markersize=2.5,
+             elinewidth=1, capthick=1)
+plt.plot(T_fit, sigma_fit, 'r-', label=f'Температурный коэффициент: dσ/dT = {coeffs[0]:.3f} мН/(м·К)')
 
-plt.figure(figsize=(8,5))
-plt.plot(T, q, 's-', label='q = -T dσ/dT')
-plt.plot(T, U_over_F, 'o-', label='U/F = σ - T dσ/dT')
-plt.xlabel('T, K')
-plt.ylabel('мН/м')
-plt.title('Теплота и поверхностная энергия')
-plt.grid(True)
+plt.xlabel('Температура T, K')
+plt.ylabel('σ, мН/м')
+plt.title('Зависимость σ(T)')
+plt.grid(True, linestyle='--', alpha=0.6)
 plt.legend()
 plt.show()
