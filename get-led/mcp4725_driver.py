@@ -15,7 +15,7 @@ class MCP4725:
         if not isinstance(number, int):
             print("На вход ЦАП можно подавать только целые числа")
 
-        if not (0 <= number <= 1023):
+        if not (0 <= number <= 4095):
             print("Число выходит за разраядность MCP4752 (12 бит)")
 
         first_byte = self.wm | self.pds | number >> 8
@@ -25,7 +25,7 @@ class MCP4725:
         if self.verbose:
             print(f"Число: {number}, отправленные по I2C данные: [0x{(self.address << 1):02X}, 0x{first_byte:02X}, 0x{second_byte:02X}]\n")
     def set_voltage(self, voltage):
-        self.set_number(round(voltage/self.dynamic_range*1023))
+        self.set_number(round(voltage/self.dynamic_range*4095))
 
 if __name__ == "__main__":
     try:

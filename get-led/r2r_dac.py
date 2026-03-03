@@ -9,7 +9,6 @@ class R2R_DAC:
         GPIO.setmode(GPIO.BCM)
         GPIO.setup(self.gpio_bits, GPIO.OUT, initial = 0)
     def set_number(self, number):
-        print(number)
         k=[int(bit) for bit in bin(number)[2:].zfill(8)]
         GPIO.output(self.gpio_bits, k)
     def set_voltage(self, voltage):
