@@ -11,6 +11,6 @@ if not exist "%GITDIR%\git-bash.exe" (
 
 cd /d "%~dp0"
 
-start "" "%GITDIR%\git-bash.exe" --cd="%CD%" -c "eval $(ssh-agent -s) >/dev/null; ssh-add ~/.ssh/id_rsa; echo; echo '--- keys in agent ---'; ssh-add -l; echo; echo '--- github ---'; if git ls-remote origin >/dev/null 2>&1; then echo 'OK - GitHub reachable, key accepted'; else echo 'FAIL - GitHub refused the key'; fi; echo; echo '--- repo ---'; git status -sb; echo; exec bash -i"
+start "" "%GITDIR%\git-bash.exe" --cd="%CD%" -c "./connect.sh; exec bash -i"
 
 exit /b 0

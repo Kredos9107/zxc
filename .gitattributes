@@ -1,0 +1,5 @@
+# .sh обязан быть с LF, иначе bash ругается на "bad interpreter: ...^M"
+*.sh text eol=lf
+# .bat/.cmd - наоборот, с CRLF
+*.bat text eol=crlf
+*.cmd text eol=crlf
