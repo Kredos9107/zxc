@@ -96,9 +96,11 @@ echo ------------------------------------------------
 echo   REJECTED: a file over 100 MB is in the commits.
 echo   GitHub will never accept it.
 echo.
-echo   Run fix-repo.bat - it untracks the large
-echo   folders (files stay on your disk) and rebuilds
-echo   the local commits. Then run push.bat again.
+echo   Find the file in the message above, then in
+echo   Git Bash untrack it (the file stays on disk):
+echo       git rm --cached "path/to/big.pdf"
+echo       git commit --amend -C HEAD
+echo   Then run push.bat again.
 echo ------------------------------------------------
 echo.
 pause
