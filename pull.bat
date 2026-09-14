@@ -17,7 +17,7 @@ echo   remote : github.com/Kredos9107/zxc
 echo ================================================
 echo.
 
-rem --- refuse to pull over uncommitted changes ---
+rem --- refuse to pull over uncommitted changes to tracked files ---
 %GIT% diff --quiet && %GIT% diff --cached --quiet
 if errorlevel 1 (
     echo ------------------------------------------------
@@ -32,6 +32,16 @@ if errorlevel 1 (
 )
 
 %GIT% fetch origin
+if errorlevel 1 (
+    echo.
+    echo ------------------------------------------------
+    echo   Could not reach GitHub. Run connect.bat and
+    echo   check the SSH key, then try again.
+    echo ------------------------------------------------
+    echo.
+    pause
+    exit /b 1
+)
 echo.
 echo Incoming commits:
 %GIT% --no-pager log --oneline HEAD..origin/%BRANCH%

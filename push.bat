@@ -20,8 +20,11 @@ echo.
 %GIT% status --short
 echo.
 
-%GIT% diff --quiet && %GIT% diff --cached --quiet
-if not errorlevel 1 (
+rem ---- anything to commit? (tracked changes OR untracked files) ----
+set "DIRTY="
+for /f "delims=" %%s in ('%GIT% status --porcelain') do set DIRTY=1
+
+if not defined DIRTY (
     echo No local changes to commit.
     echo Checking for unpushed commits...
     echo.
@@ -38,6 +41,13 @@ if "!MSG!"=="" (
 echo.
 %GIT% add -A
 %GIT% commit -m "!MSG!"
+if errorlevel 1 (
+    echo.
+    echo   Commit failed. Nothing was pushed.
+    echo.
+    pause
+    exit /b 1
+)
 echo.
 
 :dopush
@@ -51,6 +61,10 @@ findstr /i /c:"exceeds GitHub's file size limit" "%TEMP%\pusherr.txt" >nul
 if not errorlevel 1 goto :toobig
 findstr /i /c:"GH001" "%TEMP%\pusherr.txt" >nul
 if not errorlevel 1 goto :toobig
+findstr /i /c:"Permission denied (publickey)" "%TEMP%\pusherr.txt" >nul
+if not errorlevel 1 goto :nokey
+findstr /i /c:"Could not read from remote repository" "%TEMP%\pusherr.txt" >nul
+if not errorlevel 1 goto :nokey
 findstr /i /c:"fetch first" "%TEMP%\pusherr.txt" >nul
 if not errorlevel 1 goto :behind
 findstr /i /c:"non-fast-forward" "%TEMP%\pusherr.txt" >nul
@@ -60,6 +74,17 @@ echo.
 echo ------------------------------------------------
 echo   Push failed for a reason this script does not
 echo   recognise. Read the message above.
+echo ------------------------------------------------
+echo.
+pause
+exit /b 1
+
+:nokey
+echo.
+echo ------------------------------------------------
+echo   REJECTED: GitHub did not accept the SSH key.
+echo   Run connect.bat and check what it prints,
+echo   then run push.bat again.
 echo ------------------------------------------------
 echo.
 pause
