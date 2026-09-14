@@ -5,7 +5,8 @@ title PUSH to github Kredos9107/zxc
 set GIT=git
 where git >nul 2>&1 || set GIT="C:\Program Files\Git\bin\git.exe"
 
-cd /d "%~dp0"
+rem the buttons live in a subfolder - the repo is one level up
+cd /d "%~dp0.."
 
 for /f "delims=" %%b in ('%GIT% rev-parse --abbrev-ref HEAD') do set BRANCH=%%b
 

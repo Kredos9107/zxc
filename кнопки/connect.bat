@@ -9,8 +9,8 @@ if not exist "%GITDIR%\git-bash.exe" (
     exit /b 1
 )
 
-cd /d "%~dp0"
-
-start "" "%GITDIR%\git-bash.exe" --cd="%CD%" -c "./connect.sh; exec bash -i"
+rem bash starts in this folder (кнопки), runs the script, then steps up
+rem into the repo itself and stays there as a normal interactive shell
+start "" "%GITDIR%\git-bash.exe" --cd="%~dp0" -c "./connect.sh; cd ..; exec bash -i"
 
 exit /b 0
