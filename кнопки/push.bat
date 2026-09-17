@@ -8,6 +8,14 @@ where git >nul 2>&1 || set GIT="C:\Program Files\Git\bin\git.exe"
 rem the buttons live in a subfolder - the repo is one level up
 cd /d "%~dp0.."
 
+rem --- ssh: point it at the key explicitly ---
+rem Started from Explorer, Git's ssh garbles a Cyrillic user folder name
+rem and then finds neither the key nor known_hosts ("authenticity of host
+rem can't be established"). The 8.3 short name of the folder is plain ASCII.
+for %%I in ("%USERPROFILE%") do set "UP=%%~sI"
+set "UP=%UP:\=/%"
+set GIT_SSH_COMMAND=ssh -i "%UP%/.ssh/id_rsa" -o UserKnownHostsFile="%UP%/.ssh/known_hosts"
+
 for /f "delims=" %%b in ('%GIT% rev-parse --abbrev-ref HEAD') do set BRANCH=%%b
 
 echo ================================================
@@ -127,8 +135,10 @@ echo.
 %GIT% pull --rebase origin %BRANCH%
 if errorlevel 1 (
     echo.
-    echo   REBASE STOPPED - conflicts. Open Git Bash:
-    echo       git rebase --abort      to roll back
+    echo   Could not bring in the remote commits.
+    echo   Run pull.bat - it explains the reason and can
+    echo   fix the common ones - then run push.bat again.
+    echo   (if a rebase was started: git rebase --abort)
     echo.
     pause
     exit /b 1

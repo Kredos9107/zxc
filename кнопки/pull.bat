@@ -8,6 +8,16 @@ where git >nul 2>&1 || set GIT="C:\Program Files\Git\bin\git.exe"
 rem the buttons live in a subfolder - the repo is one level up
 cd /d "%~dp0.."
 
+rem --- ssh: point it at the key explicitly ---
+rem Started from Explorer, Git's ssh garbles a Cyrillic user folder name
+rem and then finds neither the key nor known_hosts ("authenticity of host
+rem can't be established"). The 8.3 short name of the folder is plain ASCII.
+for %%I in ("%USERPROFILE%") do set "UP=%%~sI"
+set "UP=%UP:\=/%"
+set GIT_SSH_COMMAND=ssh -i "%UP%/.ssh/id_rsa" -o UserKnownHostsFile="%UP%/.ssh/known_hosts"
+
+set "GITBASH=C:\Program Files\Git\bin\bash.exe"
+
 for /f "delims=" %%b in ('%GIT% rev-parse --abbrev-ref HEAD') do set BRANCH=%%b
 
 echo ================================================
@@ -36,9 +46,66 @@ echo Your local commits not yet on the remote:
 %GIT% --no-pager log --oneline origin/%BRANCH%..HEAD
 echo.
 
-%GIT% pull --rebase origin %BRANCH%
-if errorlevel 1 goto :rebasefail
-goto :ok
+set CASEFIXED=
+:dopull
+%GIT% pull --rebase origin %BRANCH% 2>"%TEMP%\pullerr.txt"
+set PULLCODE=%ERRORLEVEL%
+type "%TEMP%\pullerr.txt"
+if %PULLCODE%==0 (
+    if exist ".git\fix-case-paths" del ".git\fix-case-paths"
+    goto :ok
+)
+
+rem --- a real rebase with conflicts is in progress ---
+if exist ".git\rebase-merge" goto :rebasefail
+if exist ".git\rebase-apply" goto :rebasefail
+
+rem --- the retry after a case fix failed too: put the old files back ---
+if defined CASEFIXED (
+    echo.
+    echo --- retry failed, restoring the old file names ---
+    "%GITBASH%" "%~dp0fix-case.sh" --undo
+    goto :pullfail
+)
+
+rem --- file renamed on the other PC by changing only letter case? ---
+findstr /i /c:"untracked working tree files would be overwritten by" "%TEMP%\pullerr.txt" >nul
+if not errorlevel 1 goto :casefix
+goto :pullfail
+
+:casefix
+set CASEFIXED=1
+echo.
+echo ------------------------------------------------
+echo   A file was renamed on the other PC by changing
+echo   only the letter case. Windows sees the old and
+echo   new name as the same file, so git refuses.
+echo   Removing the old copies (only if they are
+echo   byte-identical to GitHub) and retrying...
+echo ------------------------------------------------
+"%GITBASH%" "%~dp0fix-case.sh" %BRANCH%
+if errorlevel 1 goto :pullfail
+echo.
+goto :dopull
+
+:pullfail
+echo.
+echo ------------------------------------------------
+echo   PULL FAILED before anything was changed.
+echo   Read the message above.
+echo ------------------------------------------------
+echo.
+echo   [1] leave it
+echo   [2] FORCE - take GitHub's version as-is
+echo.
+set "ANS="
+set /p ANS="Choose 1 or 2: "
+if "!ANS!"=="2" goto :askforce
+echo.
+echo Left as is.
+echo.
+pause
+exit /b 1
 
 :netfail
 echo.
