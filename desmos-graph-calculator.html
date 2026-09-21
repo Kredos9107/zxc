@@ -1,0 +1,1220 @@
+<title>Графит</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap">
+<style>
+:root{
+  --paper:#FBFAF3;
+  --panel:#FFFFFF;
+  --panel-2:#F3F0E3;
+  --ink:#26291F;
+  --ink-dim:#83806B;
+  --grid-minor: rgba(50,45,25,0.09);
+  --grid-major: rgba(50,45,25,0.20);
+  --axis: #8E8564;
+  --accent:#3457D5;
+  --accent-ink:#FFFFFF;
+  --accent-soft: rgba(52,87,213,0.10);
+  --border: rgba(40,35,20,0.14);
+  --danger:#C74440;
+  --danger-soft: rgba(199,68,64,0.12);
+  --shadow: 0 2px 10px rgba(40,35,10,0.10), 0 1px 2px rgba(40,35,10,0.08);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#12151B;
+    --panel:#191D25;
+    --panel-2:#20242E;
+    --ink:#E8E7DD;
+    --ink-dim:#9497A1;
+    --grid-minor: rgba(255,255,255,0.055);
+    --grid-major: rgba(255,255,255,0.14);
+    --axis:#6C7686;
+    --accent:#7C9BFF;
+    --accent-ink:#0C0F16;
+    --accent-soft: rgba(124,155,255,0.16);
+    --border: rgba(255,255,255,0.11);
+    --danger:#FF7A70;
+    --danger-soft: rgba(255,122,112,0.16);
+    --shadow: 0 2px 14px rgba(0,0,0,0.35);
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#12151B;
+  --panel:#191D25;
+  --panel-2:#20242E;
+  --ink:#E8E7DD;
+  --ink-dim:#9497A1;
+  --grid-minor: rgba(255,255,255,0.055);
+  --grid-major: rgba(255,255,255,0.14);
+  --axis:#6C7686;
+  --accent:#7C9BFF;
+  --accent-ink:#0C0F16;
+  --accent-soft: rgba(124,155,255,0.16);
+  --border: rgba(255,255,255,0.11);
+  --danger:#FF7A70;
+  --danger-soft: rgba(255,122,112,0.16);
+  --shadow: 0 2px 14px rgba(0,0,0,0.35);
+}
+*{box-sizing:border-box;}
+body{
+  background: var(--paper);
+  color: var(--ink);
+  font-family: 'Manrope', system-ui, sans-serif;
+  height:100%;
+  overflow:hidden;
+}
+html{height:100%;}
+.app{
+  display:flex;
+  height:100%;
+  min-height:100%;
+}
+.sidebar{
+  width:340px;
+  flex:0 0 340px;
+  background: var(--panel);
+  border-right:1px solid var(--border);
+  display:flex;
+  flex-direction:column;
+  min-height:0;
+  z-index:20;
+}
+.sidebar-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:14px 14px 10px 16px;
+  border-bottom:1px solid var(--border);
+  flex:0 0 auto;
+}
+.brand{
+  font-family:'JetBrains Mono', monospace;
+  font-weight:700;
+  font-size:16px;
+  letter-spacing:0.02em;
+  display:flex;
+  align-items:baseline;
+  gap:6px;
+}
+.brand small{
+  font-family:'Manrope',sans-serif;
+  font-weight:500;
+  font-size:11px;
+  color:var(--ink-dim);
+  letter-spacing:0.03em;
+}
+.icon-btn{
+  width:32px; height:32px;
+  border-radius:9px;
+  border:1px solid var(--border);
+  background:var(--panel-2);
+  color:var(--ink);
+  display:flex; align-items:center; justify-content:center;
+  cursor:pointer;
+  flex:0 0 auto;
+}
+.icon-btn:hover{ background:var(--accent-soft); border-color:var(--accent); color:var(--accent); }
+.icon-btn svg{ width:16px; height:16px; }
+.icon-btn.primary{ background:var(--accent); border-color:var(--accent); color:var(--accent-ink); }
+.icon-btn.primary:hover{ filter:brightness(1.08); }
+
+.expr-list{
+  flex:1 1 auto;
+  overflow-y:auto;
+  overflow-x:hidden;
+  padding:6px 0 80px 0;
+}
+.expr-row{
+  padding:9px 12px 9px 10px;
+  border-bottom:1px solid var(--border);
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  position:relative;
+}
+.expr-row.dragging{ opacity:0.5; }
+.expr-main{
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+.swatch{
+  width:22px; height:22px;
+  border-radius:50%;
+  border:2px solid var(--panel);
+  outline:1px solid var(--border);
+  background: var(--c, var(--accent));
+  flex:0 0 auto;
+  cursor:pointer;
+}
+.swatch:hover{ outline-color:var(--c, var(--accent)); }
+.expr-input-wrap{
+  flex:1 1 auto;
+  min-width:0;
+  position:relative;
+}
+.expr-input{
+  width:100%;
+  border:none;
+  background:transparent;
+  color:var(--ink);
+  font-family:'JetBrains Mono', monospace;
+  font-size:14.5px;
+  padding:4px 2px;
+  outline:none;
+  border-bottom:1.5px solid transparent;
+}
+.expr-row.has-error .expr-input{ border-bottom-color:var(--danger); }
+.expr-input::placeholder{ color:var(--ink-dim); opacity:0.7; font-family:'Manrope',sans-serif; }
+.err-dot{
+  position:absolute;
+  right:-2px; top:2px;
+  width:8px;height:8px;border-radius:50%;
+  background:var(--danger);
+  cursor:help;
+}
+.row-btns{
+  display:flex; gap:2px; flex:0 0 auto;
+}
+.row-btns .icon-btn{ width:26px; height:26px; border:none; background:transparent; }
+.row-btns .icon-btn svg{ width:14px; height:14px; }
+.row-btns .icon-btn:hover{ background:var(--panel-2); color:var(--ink); border-color:transparent; }
+.expr-row.hidden-row .swatch{ opacity:0.35; }
+.expr-row.hidden-row .expr-input{ color:var(--ink-dim); }
+
+.slider-row{
+  display:flex; align-items:center; gap:8px;
+  padding-left:30px;
+  font-family:'JetBrains Mono',monospace;
+  font-size:12px;
+  color: var(--ink-dim);
+}
+.slider-row input[type=range]{
+  flex:1 1 auto;
+  accent-color: var(--row-color, var(--accent));
+  height:18px;
+}
+.slider-val{
+  min-width:44px;
+  text-align:right;
+  font-variant-numeric: tabular-nums;
+  color:var(--ink);
+}
+.slider-bound{
+  width:38px;
+  border:1px solid var(--border);
+  background:var(--panel-2);
+  color:var(--ink-dim);
+  border-radius:6px;
+  font-family:'JetBrains Mono',monospace;
+  font-size:11px;
+  text-align:center;
+  padding:2px 0;
+}
+.play-btn{
+  width:22px;height:22px;border-radius:6px;border:1px solid var(--border);
+  background:var(--panel-2); color:var(--ink); flex:0 0 auto;
+  display:flex;align-items:center;justify-content:center;cursor:pointer;
+}
+.play-btn.active{ background:var(--accent); border-color:var(--accent); color:var(--accent-ink); }
+.play-btn svg{ width:11px;height:11px; }
+
+.param-chip{
+  margin-left:30px;
+  font-family:'JetBrains Mono',monospace;
+  font-size:12px;
+  color:var(--ink-dim);
+}
+.param-chip b{ color:var(--ink); font-weight:600; }
+
+.add-row-btn{
+  margin:10px 14px 0 14px;
+  display:flex; align-items:center; gap:8px;
+  padding:9px 12px;
+  border:1px dashed var(--border);
+  border-radius:10px;
+  color:var(--ink-dim);
+  background:transparent;
+  cursor:pointer;
+  font-family:'Manrope',sans-serif;
+  font-size:13px;
+}
+.add-row-btn:hover{ border-color:var(--accent); color:var(--accent); background:var(--accent-soft); }
+.add-row-btn svg{ width:14px;height:14px; }
+
+.hint{
+  padding:10px 16px 14px 16px;
+  font-size:11.5px;
+  line-height:1.55;
+  color:var(--ink-dim);
+  border-top:1px solid var(--border);
+  flex:0 0 auto;
+}
+.hint code{
+  font-family:'JetBrains Mono',monospace;
+  background:var(--panel-2);
+  padding:1px 4px;
+  border-radius:4px;
+  color:var(--ink);
+}
+
+.graph-wrap{
+  position:relative;
+  flex:1 1 auto;
+  min-width:0;
+  background:var(--paper);
+}
+#cv{ position:absolute; inset:0; width:100%; height:100%; touch-action:none; cursor:grab; }
+#cv:active{ cursor:grabbing; }
+
+.floating-controls{
+  position:absolute;
+  top:14px; right:14px;
+  display:flex; flex-direction:column; gap:6px;
+  z-index:10;
+}
+.floating-controls .icon-btn{
+  background:var(--panel);
+  box-shadow: var(--shadow);
+}
+.toggle-sidebar-btn{
+  position:absolute;
+  top:14px; left:14px;
+  z-index:15;
+  background:var(--panel);
+  box-shadow: var(--shadow);
+  display:none;
+}
+.coord-readout{
+  position:absolute;
+  bottom:12px; left:14px;
+  font-family:'JetBrains Mono',monospace;
+  font-size:11.5px;
+  color:var(--ink-dim);
+  background:var(--panel);
+  border:1px solid var(--border);
+  padding:4px 9px;
+  border-radius:8px;
+  box-shadow: var(--shadow);
+  pointer-events:none;
+  z-index:10;
+}
+
+@media (max-width: 760px){
+  .sidebar{
+    position:absolute;
+    inset:0 20% 0 0;
+    width:auto;
+    flex-basis:auto;
+    transform:translateX(-100%);
+    transition:transform .22s ease;
+    box-shadow: var(--shadow);
+  }
+  .sidebar.open{ transform:translateX(0); }
+  .toggle-sidebar-btn{ display:flex; }
+  .app.sidebar-open .toggle-sidebar-btn{ left:calc(80% + 10px); }
+}
+</style>
+
+<div class="app" id="app">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-head">
+      <span class="brand">Графит <small>graphing</small></span>
+      <button class="icon-btn primary" id="addBtn" title="Добавить выражение" aria-label="Добавить выражение"></button>
+    </div>
+    <div class="expr-list" id="exprList"></div>
+    <div class="hint">
+      Примеры: <code>y=x^2</code>, <code>x^2+y^2=9</code>, <code>r=2cos(3theta)</code>, слайдер <code>a=2</code>, точка <code>(1,3)</code>. Тригонометрия — в радианах.
+    </div>
+  </aside>
+  <div class="graph-wrap" id="graphWrap">
+    <button class="icon-btn toggle-sidebar-btn" id="toggleSidebar" aria-label="Список выражений"></button>
+    <canvas id="cv"></canvas>
+    <div class="floating-controls">
+      <button class="icon-btn" id="zoomIn" title="Приблизить" aria-label="Приблизить"></button>
+      <button class="icon-btn" id="zoomOut" title="Отдалить" aria-label="Отдалить"></button>
+      <button class="icon-btn" id="zoomHome" title="Сбросить вид" aria-label="Сбросить вид"></button>
+    </div>
+    <div class="coord-readout" id="coordReadout" hidden></div>
+  </div>
+</div>
+
+<script>
+(function(){
+"use strict";
+
+/* ---------- icons ---------- */
+const ICON = {
+  plus:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>',
+  minus:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M5 12h14"/></svg>',
+  home:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11.5 12 4l8 7.5"/><path d="M6 10v9h12v-9"/></svg>',
+  eye:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>',
+  eyeOff:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3l18 18"/><path d="M10.6 5.2A10.9 10.9 0 0 1 12 5c6.4 0 10 7 10 7a15.6 15.6 0 0 1-3.2 4.1M6.6 6.6C3.9 8.3 2 11 2 11s3.6 7 10 7a10 10 0 0 0 4.2-.9"/><path d="M9.5 10a3 3 0 0 0 4.2 4.2"/></svg>',
+  trash:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"/><path d="M9 7V4h6v3"/><path d="M6 7l1 13h10l1-13"/></svg>',
+  menu:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>',
+  play:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 5l12 7-12 7Z"/></svg>',
+  pause:'<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>'
+};
+document.getElementById('addBtn').innerHTML = ICON.plus;
+document.getElementById('zoomIn').innerHTML = ICON.plus;
+document.getElementById('zoomOut').innerHTML = ICON.minus;
+document.getElementById('zoomHome').innerHTML = ICON.home;
+document.getElementById('toggleSidebar').innerHTML = ICON.menu;
+
+/* ================= math engine ================= */
+const FUNC_NAMES = ['asin','acos','atan2','atan','sinh','cosh','tanh','sin','cos','tan',
+  'sqrt','abs','ln','log10','log2','log','exp','floor','ceil','round','sign','min','max','mod','pow'];
+const CONST_NAMES = ['pi','e','theta'];
+const DICT = [...FUNC_NAMES, ...CONST_NAMES].sort((a,b)=>b.length-a.length);
+
+class MathError extends Error{}
+
+function tokenize(src){
+  const toks = [];
+  let i = 0;
+  const n = src.length;
+  while(i < n){
+    const c = src[i];
+    if(c === ' ' || c === '\t'){ i++; continue; }
+    if(/[0-9]/.test(c) || (c === '.' && /[0-9]/.test(src[i+1]||''))){
+      let j = i+1;
+      while(j<n && /[0-9]/.test(src[j])) j++;
+      if(src[j] === '.'){ j++; while(j<n && /[0-9]/.test(src[j])) j++; }
+      toks.push({type:'num', value: parseFloat(src.slice(i,j))});
+      i = j; continue;
+    }
+    if(/[a-zA-Zα-ωΑ-Ω]/.test(c)){
+      let matched = null;
+      for(const name of DICT){
+        if(src.slice(i, i+name.length).toLowerCase() === name){ matched = name; break; }
+      }
+      if(matched){
+        if(matched === 'pi'){ toks.push({type:'num', value: Math.PI}); }
+        else if(matched === 'e'){ toks.push({type:'num', value: Math.E}); }
+        else if(matched === 'theta'){ toks.push({type:'var', name:'theta'}); }
+        else { toks.push({type:'func', name: matched}); }
+        i += matched.length;
+      } else {
+        toks.push({type:'var', name:c});
+        i += 1;
+      }
+      continue;
+    }
+    if('+-*/^%(),'.includes(c)){
+      const map = {'+':'plus','-':'minus','*':'star','/':'slash','^':'caret','%':'percent','(':'lparen',')':'rparen',',':'comma'};
+      toks.push({type: map[c]});
+      i++; continue;
+    }
+    if(c === '<' || c === '>'){
+      throw new MathError('Неравенства пока не поддерживаются');
+    }
+    throw new MathError('Неизвестный символ "'+c+'"');
+  }
+  toks.push({type:'eof'});
+  return toks;
+}
+
+function canStartPrimary(t){
+  return t.type==='num' || t.type==='var' || t.type==='func' || t.type==='lparen';
+}
+
+function makeParser(toks){
+  let pos = 0;
+  function peek(){ return toks[pos]; }
+  function next(){ return toks[pos++]; }
+  function expect(type){
+    if(peek().type !== type) throw new MathError('Ожидалось "'+type+'"');
+    return next();
+  }
+  function parseExpr(){ return parseAdd(); }
+  function parseAdd(){
+    let node = parseMul();
+    while(peek().type==='plus' || peek().type==='minus'){
+      const op = next().type;
+      node = {t: op==='plus'?'add':'sub', l:node, r:parseMul()};
+    }
+    return node;
+  }
+  function parseMul(){
+    let node = parseUnary();
+    while(true){
+      if(peek().type==='star'){ next(); node = {t:'mul', l:node, r:parseUnary()}; }
+      else if(peek().type==='slash'){ next(); node = {t:'div', l:node, r:parseUnary()}; }
+      else if(peek().type==='percent'){ next(); node = {t:'mod', l:node, r:parseUnary()}; }
+      else if(canStartPrimary(peek())){ node = {t:'mul', l:node, r:parseUnary()}; }
+      else break;
+    }
+    return node;
+  }
+  function parseUnary(){
+    if(peek().type==='minus'){ next(); return {t:'neg', a:parseUnary()}; }
+    if(peek().type==='plus'){ next(); return parseUnary(); }
+    return parsePower();
+  }
+  function parsePower(){
+    const base = parsePrimary();
+    if(peek().type==='caret'){ next(); return {t:'pow', l:base, r:parseUnary()}; }
+    return base;
+  }
+  function parsePrimary(){
+    const tok = peek();
+    if(tok.type==='num'){ next(); return {t:'num', v:tok.value}; }
+    if(tok.type==='lparen'){ next(); const node = parseAdd(); expect('rparen'); return node; }
+    if(tok.type==='func'){
+      next(); expect('lparen');
+      const args = [parseAdd()];
+      while(peek().type==='comma'){ next(); args.push(parseAdd()); }
+      expect('rparen');
+      return {t:'call', name: tok.name, args};
+    }
+    if(tok.type==='var'){ next(); return {t:'var', name: tok.name}; }
+    throw new MathError('Неожиданный символ в выражении');
+  }
+  const result = parseExpr();
+  if(peek().type !== 'eof') throw new MathError('Лишние символы в конце выражения');
+  return result;
+}
+
+function parseExpression(src){
+  return makeParser(tokenize(src));
+}
+
+function collectVars(node, set){
+  set = set || new Set();
+  if(!node) return set;
+  if(node.t === 'var'){ set.add(node.name); return set; }
+  if(node.t === 'num') return set;
+  if(node.t === 'neg'){ collectVars(node.a, set); return set; }
+  if(node.t === 'call'){ node.args.forEach(a=>collectVars(a,set)); return set; }
+  if(node.l) collectVars(node.l, set);
+  if(node.r) collectVars(node.r, set);
+  return set;
+}
+
+const CALLS = {
+  sin: Math.sin, cos: Math.cos, tan: Math.tan,
+  asin: Math.asin, acos: Math.acos, atan: Math.atan,
+  atan2: (y,x)=>Math.atan2(y,x),
+  sinh: Math.sinh, cosh: Math.cosh, tanh: Math.tanh,
+  sqrt: Math.sqrt, abs: Math.abs,
+  ln: Math.log, log10: Math.log10, log2: Math.log2,
+  log: (...a)=> a.length===2 ? Math.log(a[1])/Math.log(a[0]) : Math.log10(a[0]),
+  exp: Math.exp, floor: Math.floor, ceil: Math.ceil, round: Math.round,
+  sign: Math.sign,
+  min: (...a)=>Math.min(...a), max: (...a)=>Math.max(...a),
+  mod: (a,b)=> ((a % b) + b) % b,
+  pow: (a,b)=>Math.pow(a,b)
+};
+
+function evalNode(node, scope){
+  switch(node.t){
+    case 'num': return node.v;
+    case 'var': {
+      if(Object.prototype.hasOwnProperty.call(scope, node.name)) return scope[node.name];
+      throw new MathError('неизвестная переменная "'+node.name+'"');
+    }
+    case 'neg': return -evalNode(node.a, scope);
+    case 'add': return evalNode(node.l,scope) + evalNode(node.r,scope);
+    case 'sub': return evalNode(node.l,scope) - evalNode(node.r,scope);
+    case 'mul': return evalNode(node.l,scope) * evalNode(node.r,scope);
+    case 'div': return evalNode(node.l,scope) / evalNode(node.r,scope);
+    case 'mod': { const a=evalNode(node.l,scope), b=evalNode(node.r,scope); return ((a%b)+b)%b; }
+    case 'pow': return Math.pow(evalNode(node.l,scope), evalNode(node.r,scope));
+    case 'call': {
+      const fn = CALLS[node.name];
+      if(!fn) throw new MathError('неизвестная функция "'+node.name+'"');
+      return fn(...node.args.map(a=>evalNode(a,scope)));
+    }
+    default: throw new MathError('внутренняя ошибка разбора');
+  }
+}
+
+function findTopLevelEquals(text){
+  let depth = 0, found = -1;
+  for(let i=0;i<text.length;i++){
+    const c = text[i];
+    if(c==='(') depth++;
+    else if(c===')') depth--;
+    else if(c==='=' && depth===0){
+      if(found !== -1) throw new MathError('слишком много знаков "="');
+      found = i;
+    }
+  }
+  return found;
+}
+
+function findTopLevelComma(text){
+  let depth = 0;
+  for(let i=0;i<text.length;i++){
+    const c = text[i];
+    if(c==='(') depth++;
+    else if(c===')') depth--;
+    else if(c===',' && depth===0) return i;
+  }
+  return -1;
+}
+
+const RESERVED = new Set(['x','y','r','theta']);
+
+function classifyRow(text){
+  text = text.trim();
+  if(text === '') return {kind:'empty'};
+  if(/[<>]/.test(text)) throw new MathError('Неравенства пока не поддерживаются');
+
+  const eqIdx = findTopLevelEquals(text);
+
+  if(eqIdx === -1){
+    if(text[0]==='(' && text[text.length-1]===')'){
+      const inner = text.slice(1,-1);
+      const cIdx = findTopLevelComma(inner);
+      if(cIdx !== -1){
+        const xAst = parseExpression(inner.slice(0,cIdx));
+        const yAst = parseExpression(inner.slice(cIdx+1));
+        return {kind:'point', xAst, yAst};
+      }
+    }
+    const rhsAst = parseExpression(text);
+    return {kind:'explicit-y', rhsAst};
+  }
+
+  const lhsText = text.slice(0, eqIdx).trim();
+  const rhsText = text.slice(eqIdx+1).trim();
+  if(lhsText === '' || rhsText === '') throw new MathError('неполное уравнение');
+  const lhsAst = parseExpression(lhsText);
+  const rhsAst = parseExpression(rhsText);
+
+  const isBareVar = lhsAst.t === 'var' && lhsText === lhsAst.name;
+  if(isBareVar){
+    const name = lhsAst.name;
+    const rhsVars = collectVars(rhsAst);
+    if(name === 'y' && !rhsVars.has('y')) return {kind:'explicit-y', rhsAst};
+    if(name === 'x' && !rhsVars.has('x')) return {kind:'explicit-x', rhsAst};
+    if(name === 'r') return {kind:'polar', rhsAst};
+    if(!RESERVED.has(name) && !rhsVars.has('x') && !rhsVars.has('y') && !rhsVars.has('theta')){
+      return {kind:'param', name, rhsAst, rhsVars};
+    }
+  }
+  return {kind:'implicit', lhsAst, rhsAst};
+}
+
+/* ================= palette ================= */
+const PALETTE = ['#e5533d','#2166c9','#3f9142','#8e3fb0','#e08a1e','#0e8f83','#c22a72','#4550c9'];
+
+/* ================= state ================= */
+let uid = 1;
+const state = {
+  expressions: [],
+  sliderOverrides: {},
+  animating: {},
+};
+
+function newRow(text, colorIdx){
+  return { id: uid++, text: text, color: PALETTE[(colorIdx!=null?colorIdx:(state.expressions.length))%PALETTE.length],
+    visible:true, error:null, kind:null, value:undefined, sliderMin:-10, sliderMax:10, sliderStep:0.1 };
+}
+
+state.expressions.push(newRow('a=2', 0));
+state.expressions.push(newRow('y=a*sin(x)', 1));
+state.expressions.push(newRow('x^2+y^2=9', 2));
+state.expressions.push(newRow('r=2cos(3theta)', 3));
+
+/* ================= viewport ================= */
+const view = { cx: 0, cy: 0, scale: 62 };
+const homeView = { cx: 0, cy: 0, scale: 62 };
+
+/* ================= canvas setup ================= */
+const canvas = document.getElementById('cv');
+const ctx = canvas.getContext('2d');
+const graphWrap = document.getElementById('graphWrap');
+let W = 0, H = 0, DPR = 1;
+
+function resizeCanvas(){
+  const rect = graphWrap.getBoundingClientRect();
+  DPR = window.devicePixelRatio || 1;
+  W = Math.max(1, Math.round(rect.width));
+  H = Math.max(1, Math.round(rect.height));
+  canvas.width = Math.round(W*DPR);
+  canvas.height = Math.round(H*DPR);
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  scheduleDraw();
+}
+new ResizeObserver(resizeCanvas).observe(graphWrap);
+
+function worldToScreen(x,y){
+  return { x: W/2 + (x - view.cx)*view.scale, y: H/2 - (y - view.cy)*view.scale };
+}
+function screenToWorld(px,py){
+  return { x: view.cx + (px - W/2)/view.scale, y: view.cy - (py - H/2)/view.scale };
+}
+function currentBounds(){
+  return {
+    xmin: view.cx - (W/2)/view.scale, xmax: view.cx + (W/2)/view.scale,
+    ymin: view.cy - (H/2)/view.scale, ymax: view.cy + (H/2)/view.scale
+  };
+}
+
+function niceNumber(range){
+  if(range <= 0) return 1;
+  const exp = Math.floor(Math.log10(range));
+  const frac = range / Math.pow(10, exp);
+  let niceFrac;
+  if(frac <= 1) niceFrac = 1; else if(frac <= 2) niceFrac = 2; else if(frac <= 5) niceFrac = 5; else niceFrac = 10;
+  return niceFrac * Math.pow(10, exp);
+}
+
+function fmtNum(n){
+  if(Math.abs(n) < 1e-9) n = 0;
+  let s = Number(n.toPrecision(10)).toString();
+  if(s.includes('e')){
+    s = n.toFixed(Math.max(0, 6));
+    s = s.replace(/0+$/,'').replace(/\.$/,'');
+  }
+  return s;
+}
+
+let cssVarsCache = {};
+function readCSSVars(){
+  const st = getComputedStyle(document.body);
+  cssVarsCache = {
+    paper: st.getPropertyValue('--paper').trim(),
+    ink: st.getPropertyValue('--ink').trim(),
+    inkDim: st.getPropertyValue('--ink-dim').trim(),
+    gridMinor: st.getPropertyValue('--grid-minor').trim(),
+    gridMajor: st.getPropertyValue('--grid-major').trim(),
+    axis: st.getPropertyValue('--axis').trim(),
+    accent: st.getPropertyValue('--accent').trim()
+  };
+}
+
+function drawGrid(bounds){
+  const c = cssVarsCache;
+  ctx.fillStyle = c.paper;
+  ctx.fillRect(0,0,W,H);
+
+  const majorStepX = niceNumber(120 / view.scale);
+  const minorStepX = majorStepX / 5;
+  const majorStepY = majorStepX;
+  const minorStepY = minorStepX;
+
+  ctx.lineWidth = 1;
+  ctx.font = '11.5px "JetBrains Mono", monospace';
+
+  const axisScreen = worldToScreen(0,0);
+  const labelY = Math.min(Math.max(axisScreen.y + 14, 14), H - 8);
+  const labelX = Math.min(Math.max(axisScreen.x - 6, 4), W - 34);
+
+  // vertical lines
+  const i0 = Math.floor(bounds.xmin / minorStepX) - 1;
+  const i1 = Math.ceil(bounds.xmax / minorStepX) + 1;
+  for(let i=i0;i<=i1;i++){
+    const x = i * minorStepX;
+    if(Math.abs(x) < minorStepX*0.001) continue;
+    const isMajor = Math.abs(Math.round(x/majorStepX) - x/majorStepX) < 1e-6;
+    const sx = worldToScreen(x,0).x;
+    ctx.strokeStyle = isMajor ? c.gridMajor : c.gridMinor;
+    ctx.beginPath(); ctx.moveTo(sx,0); ctx.lineTo(sx,H); ctx.stroke();
+    if(isMajor){
+      ctx.fillStyle = c.inkDim;
+      ctx.textAlign = 'center';
+      ctx.fillText(fmtNum(x), sx, labelY);
+    }
+  }
+  // horizontal lines
+  const j0 = Math.floor(bounds.ymin / minorStepY) - 1;
+  const j1 = Math.ceil(bounds.ymax / minorStepY) + 1;
+  for(let j=j0;j<=j1;j++){
+    const y = j * minorStepY;
+    if(Math.abs(y) < minorStepY*0.001) continue;
+    const isMajor = Math.abs(Math.round(y/majorStepY) - y/majorStepY) < 1e-6;
+    const sy = worldToScreen(0,y).y;
+    ctx.strokeStyle = isMajor ? c.gridMajor : c.gridMinor;
+    ctx.beginPath(); ctx.moveTo(0,sy); ctx.lineTo(W,sy); ctx.stroke();
+    if(isMajor){
+      ctx.fillStyle = c.inkDim;
+      ctx.textAlign = labelX < 20 ? 'left' : 'right';
+      ctx.fillText(fmtNum(y), labelX, sy - 4);
+    }
+  }
+
+  // axes
+  ctx.strokeStyle = c.axis;
+  ctx.lineWidth = 1.6;
+  if(axisScreen.x >= 0 && axisScreen.x <= W){
+    ctx.beginPath(); ctx.moveTo(axisScreen.x,0); ctx.lineTo(axisScreen.x,H); ctx.stroke();
+  }
+  if(axisScreen.y >= 0 && axisScreen.y <= H){
+    ctx.beginPath(); ctx.moveTo(0,axisScreen.y); ctx.lineTo(W,axisScreen.y); ctx.stroke();
+  }
+  ctx.fillStyle = c.inkDim;
+  ctx.textAlign = 'left';
+  ctx.fillText('0', Math.min(Math.max(axisScreen.x+5,4),W-16), Math.min(Math.max(axisScreen.y+13,14),H-6));
+}
+
+function plotExplicitY(rhsAst, scope, color){
+  ctx.strokeStyle = color; ctx.lineWidth = 2.6; ctx.lineJoin='round'; ctx.lineCap='round';
+  ctx.beginPath();
+  let started = false, prevY = null;
+  for(let px=0; px<=W; px++){
+    const x = screenToWorld(px,0).x;
+    let y;
+    try { y = evalNode(rhsAst, {...scope, x}); } catch(e){ throw e; }
+    if(!isFinite(y)){ started = false; continue; }
+    const s = worldToScreen(x,y);
+    if(started && prevY!==null && Math.abs(s.y - prevY) > H*3){ started = false; }
+    if(!started){ ctx.moveTo(s.x,s.y); started = true; } else { ctx.lineTo(s.x,s.y); }
+    prevY = s.y;
+  }
+  ctx.stroke();
+}
+
+function plotExplicitX(rhsAst, scope, color){
+  ctx.strokeStyle = color; ctx.lineWidth = 2.6; ctx.lineJoin='round'; ctx.lineCap='round';
+  ctx.beginPath();
+  let started = false, prevX = null;
+  for(let py=0; py<=H; py++){
+    const y = screenToWorld(0,py).y;
+    let x;
+    try { x = evalNode(rhsAst, {...scope, y}); } catch(e){ throw e; }
+    if(!isFinite(x)){ started = false; continue; }
+    const s = worldToScreen(x,y);
+    if(started && prevX!==null && Math.abs(s.x - prevX) > W*3){ started = false; }
+    if(!started){ ctx.moveTo(s.x,s.y); started = true; } else { ctx.lineTo(s.x,s.y); }
+    prevX = s.x;
+  }
+  ctx.stroke();
+}
+
+function plotPolar(rhsAst, scope, color){
+  ctx.strokeStyle = color; ctx.lineWidth = 2.6; ctx.lineJoin='round'; ctx.lineCap='round';
+  ctx.beginPath();
+  let started = false;
+  const steps = 2400;
+  const thetaMax = 4*Math.PI;
+  for(let i=0;i<=steps;i++){
+    const theta = (i/steps)*thetaMax;
+    let r;
+    try { r = evalNode(rhsAst, {...scope, theta}); } catch(e){ throw e; }
+    if(!isFinite(r)){ started = false; continue; }
+    const x = r*Math.cos(theta), y = r*Math.sin(theta);
+    const s = worldToScreen(x,y);
+    if(!started){ ctx.moveTo(s.x,s.y); started = true; } else { ctx.lineTo(s.x,s.y); }
+  }
+  ctx.stroke();
+}
+
+function plotImplicit(lhsAst, rhsAst, scope, bounds, color){
+  const cols = Math.max(20, Math.min(170, Math.floor(W/4)));
+  const rows = Math.max(20, Math.min(140, Math.floor(H/4)));
+  const x0=bounds.xmin, x1=bounds.xmax, y0=bounds.ymin, y1=bounds.ymax;
+  const dx=(x1-x0)/cols, dy=(y1-y0)/rows;
+  const grid = new Float64Array((cols+1)*(rows+1));
+  let any=false;
+  for(let j=0;j<=rows;j++){
+    const y = y0 + j*dy;
+    for(let i=0;i<=cols;i++){
+      const x = x0 + i*dx;
+      let v;
+      try { v = evalNode(lhsAst, {...scope,x,y}) - evalNode(rhsAst, {...scope,x,y}); }
+      catch(e){ throw e; }
+      if(isFinite(v)) any = true;
+      grid[j*(cols+1)+i] = v;
+    }
+  }
+  if(!any) return;
+  const val = (i,j)=>grid[j*(cols+1)+i];
+  const wx = i => x0+i*dx, wy = j => y0+j*dy;
+  ctx.strokeStyle = color; ctx.lineWidth = 2.4; ctx.lineJoin='round';
+  ctx.beginPath();
+  for(let j=0;j<rows;j++){
+    for(let i=0;i<cols;i++){
+      const v00=val(i,j), v10=val(i+1,j), v11=val(i+1,j+1), v01=val(i,j+1);
+      if(![v00,v10,v11,v01].every(isFinite)) continue;
+      if(v00===0 && v10===0 && v11===0 && v01===0) continue;
+      const pts = [];
+      if((v00<0)!==(v10<0)){ const t=v00/(v00-v10); pts.push([wx(i+t), wy(j)]); }
+      if((v10<0)!==(v11<0)){ const t=v10/(v10-v11); pts.push([wx(i+1), wy(j+t)]); }
+      if((v11<0)!==(v01<0)){ const t=v11/(v11-v01); pts.push([wx(i+1-t), wy(j+1)]); }
+      if((v01<0)!==(v00<0)){ const t=v01/(v01-v00); pts.push([wx(i), wy(j+1-t)]); }
+      for(let k=0;k+1<pts.length;k+=2){
+        const s1 = worldToScreen(pts[k][0],pts[k][1]);
+        const s2 = worldToScreen(pts[k+1][0],pts[k+1][1]);
+        ctx.moveTo(s1.x,s1.y); ctx.lineTo(s2.x,s2.y);
+      }
+    }
+  }
+  ctx.stroke();
+}
+
+function plotPoint(xAst, yAst, scope, color){
+  let x,y;
+  try { x = evalNode(xAst, scope); y = evalNode(yAst, scope); } catch(e){ throw e; }
+  if(!isFinite(x) || !isFinite(y)) return;
+  const s = worldToScreen(x,y);
+  ctx.fillStyle = color;
+  ctx.beginPath(); ctx.arc(s.x,s.y,5.5,0,Math.PI*2); ctx.fill();
+  ctx.lineWidth = 2; ctx.strokeStyle = cssVarsCache.paper;
+  ctx.beginPath(); ctx.arc(s.x,s.y,5.5,0,Math.PI*2); ctx.stroke();
+  ctx.fillStyle = cssVarsCache.ink;
+  ctx.font = '12px "JetBrains Mono", monospace';
+  ctx.textAlign = 'left';
+  ctx.fillText('('+fmtNum(x)+', '+fmtNum(y)+')', s.x+9, s.y-9);
+}
+
+/* ================= evaluation pipeline ================= */
+function recompute(){
+  const params = {};
+  for(const row of state.expressions){
+    row.error = null;
+    row.cls = null;
+    const text = row.text.trim();
+    if(text === ''){ continue; }
+    try{
+      const cls = classifyRow(text);
+      row.cls = cls;
+      if(cls.kind === 'param'){
+        for(const v of cls.rhsVars){
+          if(!(v in params)) throw new MathError('неизвестный параметр "'+v+'"');
+        }
+        const override = state.sliderOverrides[row.id];
+        const val = (override !== undefined) ? override : evalNode(cls.rhsAst, params);
+        params[cls.name] = val;
+        row.paramName = cls.name;
+        row.isPureConst = cls.rhsVars.size === 0;
+        row.value = val;
+      }
+    } catch(e){
+      row.error = e.message || String(e);
+    }
+  }
+
+  const bounds = currentBounds();
+  for(const row of state.expressions){
+    if(!row.visible || row.error || !row.cls || row.text.trim()==='') continue;
+    try{
+      switch(row.cls.kind){
+        case 'explicit-y': plotExplicitY(row.cls.rhsAst, params, row.color); break;
+        case 'explicit-x': plotExplicitX(row.cls.rhsAst, params, row.color); break;
+        case 'polar': plotPolar(row.cls.rhsAst, params, row.color); break;
+        case 'implicit': plotImplicit(row.cls.lhsAst, row.cls.rhsAst, params, bounds, row.color); break;
+        case 'point': plotPoint(row.cls.xAst, row.cls.yAst, params, row.color); break;
+      }
+    } catch(e){
+      row.error = e.message || String(e);
+    }
+  }
+  return params;
+}
+
+let drawScheduled = false;
+function scheduleDraw(){
+  if(drawScheduled) return;
+  drawScheduled = true;
+  requestAnimationFrame(()=>{
+    drawScheduled = false;
+    readCSSVars();
+    const bounds = currentBounds();
+    drawGrid(bounds);
+    const params = recompute();
+    renderExpressionList(params);
+  });
+}
+
+/* ================= sidebar rendering ================= */
+const exprList = document.getElementById('exprList');
+let focusRowId = null, focusCaret = null;
+
+function colorNext(color){
+  const idx = PALETTE.indexOf(color);
+  return PALETTE[(idx+1) % PALETTE.length];
+}
+
+function renderExpressionList(params){
+  const activeEl = document.activeElement;
+  const activeId = activeEl && activeEl.classList && activeEl.classList.contains('expr-input')
+    ? Number(activeEl.closest('.expr-row').dataset.id) : null;
+  const caretPos = activeId ? activeEl.selectionStart : null;
+
+  exprList.innerHTML = '';
+  for(const row of state.expressions){
+    const el = document.createElement('div');
+    el.className = 'expr-row' + (row.error ? ' has-error':'') + (!row.visible ? ' hidden-row':'');
+    el.dataset.id = row.id;
+
+    const main = document.createElement('div');
+    main.className = 'expr-main';
+
+    const swatch = document.createElement('button');
+    swatch.className = 'swatch';
+    swatch.style.setProperty('--c', row.color);
+    swatch.title = 'Изменить цвет';
+    swatch.addEventListener('click', ()=>{ row.color = colorNext(row.color); scheduleDraw(); });
+    main.appendChild(swatch);
+
+    const inputWrap = document.createElement('div');
+    inputWrap.className = 'expr-input-wrap';
+    const input = document.createElement('input');
+    input.className = 'expr-input';
+    input.spellcheck = false;
+    input.autocomplete = 'off';
+    input.placeholder = 'y = x²  или  x²+y²=9';
+    input.value = row.text;
+    input.addEventListener('input', ()=>{ row.text = input.value; scheduleDraw(); });
+    input.addEventListener('keydown', (ev)=>{
+      if(ev.key === 'Enter'){
+        ev.preventDefault();
+        const idx = state.expressions.indexOf(row);
+        const nr = newRow('', undefined);
+        state.expressions.splice(idx+1, 0, nr);
+        focusRowId = nr.id; focusCaret = 0;
+        scheduleDraw();
+      } else if(ev.key === 'Backspace' && input.value === '' && state.expressions.length>1){
+        ev.preventDefault();
+        const idx = state.expressions.indexOf(row);
+        state.expressions.splice(idx,1);
+        delete state.sliderOverrides[row.id];
+        delete state.animating[row.id];
+        const prev = state.expressions[Math.max(0,idx-1)];
+        if(prev){ focusRowId = prev.id; focusCaret = prev.text.length; }
+        scheduleDraw();
+      }
+    });
+    inputWrap.appendChild(input);
+    if(row.error){
+      const dot = document.createElement('span');
+      dot.className = 'err-dot';
+      dot.title = row.error;
+      inputWrap.appendChild(dot);
+    }
+    main.appendChild(inputWrap);
+
+    const btns = document.createElement('div');
+    btns.className = 'row-btns';
+    const eyeBtn = document.createElement('button');
+    eyeBtn.className = 'icon-btn';
+    eyeBtn.innerHTML = row.visible ? ICON.eye : ICON.eyeOff;
+    eyeBtn.title = row.visible ? 'Скрыть' : 'Показать';
+    eyeBtn.addEventListener('click', ()=>{ row.visible = !row.visible; scheduleDraw(); });
+    btns.appendChild(eyeBtn);
+    const delBtn = document.createElement('button');
+    delBtn.className = 'icon-btn';
+    delBtn.innerHTML = ICON.trash;
+    delBtn.title = 'Удалить';
+    delBtn.addEventListener('click', ()=>{
+      const idx = state.expressions.indexOf(row);
+      state.expressions.splice(idx,1);
+      delete state.sliderOverrides[row.id];
+      delete state.animating[row.id];
+      if(state.expressions.length===0) state.expressions.push(newRow('',0));
+      scheduleDraw();
+    });
+    btns.appendChild(delBtn);
+    main.appendChild(btns);
+
+    el.appendChild(main);
+
+    if(row.cls && row.cls.kind === 'param'){
+      if(row.isPureConst){
+        const sliderRow = document.createElement('div');
+        sliderRow.className = 'slider-row';
+        sliderRow.style.setProperty('--row-color', row.color);
+
+        const val = row.value;
+        if(val < row.sliderMin) row.sliderMin = -Math.max(10, Math.ceil(Math.abs(val)*2));
+        if(val > row.sliderMax) row.sliderMax = Math.max(10, Math.ceil(Math.abs(val)*2));
+
+        const playBtn = document.createElement('button');
+        playBtn.className = 'play-btn' + (state.animating[row.id] ? ' active':'');
+        playBtn.innerHTML = state.animating[row.id] ? ICON.pause : ICON.play;
+        playBtn.title = 'Анимировать значение';
+        playBtn.addEventListener('click', ()=>{
+          if(state.animating[row.id]){ delete state.animating[row.id]; }
+          else { state.animating[row.id] = { dir: 1 }; }
+          scheduleDraw();
+        });
+        sliderRow.appendChild(playBtn);
+
+        const minInp = document.createElement('input');
+        minInp.className = 'slider-bound'; minInp.value = fmtNum(row.sliderMin);
+        minInp.addEventListener('change', ()=>{ const v=parseFloat(minInp.value); if(isFinite(v)) row.sliderMin=v; scheduleDraw(); });
+        sliderRow.appendChild(minInp);
+
+        const range = document.createElement('input');
+        range.type = 'range';
+        range.min = row.sliderMin; range.max = row.sliderMax; range.step = row.sliderStep;
+        range.value = val;
+        range.addEventListener('input', ()=>{
+          state.sliderOverrides[row.id] = parseFloat(range.value);
+          scheduleDraw();
+        });
+        sliderRow.appendChild(range);
+
+        const maxInp = document.createElement('input');
+        maxInp.className = 'slider-bound'; maxInp.value = fmtNum(row.sliderMax);
+        maxInp.addEventListener('change', ()=>{ const v=parseFloat(maxInp.value); if(isFinite(v)) row.sliderMax=v; scheduleDraw(); });
+        sliderRow.appendChild(maxInp);
+
+        const valLabel = document.createElement('span');
+        valLabel.className = 'slider-val';
+        valLabel.textContent = fmtNum(val);
+        sliderRow.appendChild(valLabel);
+
+        el.appendChild(sliderRow);
+      } else {
+        const chip = document.createElement('div');
+        chip.className = 'param-chip';
+        chip.innerHTML = row.paramName + ' = <b>'+fmtNum(row.value)+'</b>';
+        el.appendChild(chip);
+      }
+    }
+
+    exprList.appendChild(el);
+
+    if(focusRowId === row.id){
+      requestAnimationFrame(()=>{
+        input.focus();
+        if(focusCaret != null) input.setSelectionRange(focusCaret, focusCaret);
+      });
+      focusRowId = null; focusCaret = null;
+    } else if(activeId === row.id){
+      requestAnimationFrame(()=>{
+        input.focus();
+        if(caretPos != null) input.setSelectionRange(caretPos, caretPos);
+      });
+    }
+  }
+}
+
+document.getElementById('addBtn').addEventListener('click', ()=>{
+  const nr = newRow('', undefined);
+  state.expressions.push(nr);
+  focusRowId = nr.id; focusCaret = 0;
+  scheduleDraw();
+});
+
+/* ================= slider animation loop ================= */
+let lastAnimTs = null;
+function animLoop(ts){
+  if(lastAnimTs == null) lastAnimTs = ts;
+  const dt = (ts - lastAnimTs)/1000;
+  lastAnimTs = ts;
+  let changed = false;
+  for(const row of state.expressions){
+    const anim = state.animating[row.id];
+    if(!anim || !row.cls || row.cls.kind !== 'param') continue;
+    const speed = (row.sliderMax - row.sliderMin) * 0.25;
+    let v = state.sliderOverrides[row.id];
+    if(v === undefined) v = row.value || 0;
+    v += anim.dir * speed * dt;
+    if(v > row.sliderMax){ v = row.sliderMax; anim.dir = -1; }
+    if(v < row.sliderMin){ v = row.sliderMin; anim.dir = 1; }
+    state.sliderOverrides[row.id] = v;
+    changed = true;
+  }
+  if(changed) scheduleDraw();
+  requestAnimationFrame(animLoop);
+}
+requestAnimationFrame(animLoop);
+
+/* ================= pan & zoom ================= */
+const pointers = new Map();
+let pinchStartDist = null, pinchStartScale = null, pinchStartMid = null, pinchStartCenter = null;
+let panStart = null;
+
+canvas.addEventListener('pointerdown', (e)=>{
+  canvas.setPointerCapture(e.pointerId);
+  pointers.set(e.pointerId, {x:e.clientX, y:e.clientY});
+  if(pointers.size === 1){
+    panStart = { x:e.clientX, y:e.clientY, cx:view.cx, cy:view.cy };
+  } else if(pointers.size === 2){
+    panStart = null;
+    const pts = [...pointers.values()];
+    pinchStartDist = Math.hypot(pts[0].x-pts[1].x, pts[0].y-pts[1].y);
+    pinchStartScale = view.scale;
+    const rect = canvas.getBoundingClientRect();
+    pinchStartMid = { x:(pts[0].x+pts[1].x)/2 - rect.left, y:(pts[0].y+pts[1].y)/2 - rect.top };
+    pinchStartCenter = screenToWorld(pinchStartMid.x, pinchStartMid.y);
+  }
+});
+canvas.addEventListener('pointermove', (e)=>{
+  if(!pointers.has(e.pointerId)) return;
+  pointers.set(e.pointerId, {x:e.clientX, y:e.clientY});
+  if(pointers.size === 1 && panStart){
+    const dx = (e.clientX - panStart.x)/view.scale;
+    const dy = (e.clientY - panStart.y)/view.scale;
+    view.cx = panStart.cx - dx;
+    view.cy = panStart.cy + dy;
+    scheduleDraw();
+  } else if(pointers.size === 2 && pinchStartDist){
+    const pts = [...pointers.values()];
+    const dist = Math.hypot(pts[0].x-pts[1].x, pts[0].y-pts[1].y);
+    const factor = dist / pinchStartDist;
+    view.scale = Math.min(200000, Math.max(2, pinchStartScale * factor));
+    view.cx = pinchStartCenter.x - (pinchStartMid.x - W/2)/view.scale;
+    view.cy = pinchStartCenter.y + (pinchStartMid.y - H/2)/view.scale;
+    scheduleDraw();
+  }
+  const rect = canvas.getBoundingClientRect();
+  const w = screenToWorld(e.clientX-rect.left, e.clientY-rect.top);
+  const ro = document.getElementById('coordReadout');
+  ro.hidden = false;
+  ro.textContent = '('+fmtNum(w.x)+', '+fmtNum(w.y)+')';
+});
+function endPointer(e){
+  pointers.delete(e.pointerId);
+  if(pointers.size < 2){ pinchStartDist = null; }
+  if(pointers.size === 1){
+    const [p] = pointers.values();
+    panStart = { x:p.x, y:p.y, cx:view.cx, cy:view.cy };
+  }
+  if(pointers.size === 0){ panStart = null; document.getElementById('coordReadout').hidden = true; }
+}
+canvas.addEventListener('pointerup', endPointer);
+canvas.addEventListener('pointercancel', endPointer);
+canvas.addEventListener('pointerleave', (e)=>{ if(pointers.size===0) document.getElementById('coordReadout').hidden = true; });
+
+canvas.addEventListener('wheel', (e)=>{
+  e.preventDefault();
+  const rect = canvas.getBoundingClientRect();
+  const px = e.clientX - rect.left, py = e.clientY - rect.top;
+  const before = screenToWorld(px,py);
+  const factor = Math.pow(1.0016, -e.deltaY);
+  view.scale = Math.min(200000, Math.max(2, view.scale * factor));
+  view.cx = before.x - (px - W/2)/view.scale;
+  view.cy = before.y + (py - H/2)/view.scale;
+  scheduleDraw();
+}, { passive:false });
+
+function zoomByFactor(factor){
+  view.scale = Math.min(200000, Math.max(2, view.scale * factor));
+  scheduleDraw();
+}
+document.getElementById('zoomIn').addEventListener('click', ()=>zoomByFactor(1.35));
+document.getElementById('zoomOut').addEventListener('click', ()=>zoomByFactor(1/1.35));
+document.getElementById('zoomHome').addEventListener('click', ()=>{
+  view.cx = homeView.cx; view.cy = homeView.cy; view.scale = homeView.scale;
+  scheduleDraw();
+});
+
+/* ================= mobile sidebar toggle ================= */
+const app = document.getElementById('app');
+const sidebar = document.getElementById('sidebar');
+document.getElementById('toggleSidebar').addEventListener('click', ()=>{
+  sidebar.classList.toggle('open');
+  app.classList.toggle('sidebar-open');
+});
+graphWrap.addEventListener('pointerdown', ()=>{
+  if(window.innerWidth <= 760 && sidebar.classList.contains('open')){
+    sidebar.classList.remove('open');
+    app.classList.remove('sidebar-open');
+  }
+});
+
+/* ================= theme change redraw ================= */
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', scheduleDraw);
+new MutationObserver(scheduleDraw).observe(document.documentElement, {attributes:true, attributeFilter:['data-theme']});
+
+/* ================= init ================= */
+resizeCanvas();
+scheduleDraw();
+
+})();
+</script>
