@@ -3,3 +3,5 @@
 # .bat/.cmd - наоборот, с CRLF
 *.bat text eol=crlf
 *.cmd text eol=crlf
+# .ps1 - CRLF, as Windows PowerShell expects
+*.ps1 text eol=crlf
