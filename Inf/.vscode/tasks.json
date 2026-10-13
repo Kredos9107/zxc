@@ -1,7 +1,7 @@
 {
     "tasks": [
         {
-            "type": "process",
+            "type": "cppbuild",
             "label": "C/C++: g++.exe build active file",
             "command": "powershell.exe",
             "args": [
