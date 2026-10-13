@@ -1,6 +1,10 @@
-# Builds the active C++ file with g++, wherever MinGW is installed on this PC.
+﻿# Builds the active C++ file with g++, wherever MinGW is installed on this PC.
 # Called from tasks.json:  build.ps1 <source.cpp> <output.exe>
 param([string]$src, [string]$out)
+
+$log = Join-Path $PSScriptRoot 'last-build.log'
+"$(Get-Date)  src=$src  out=$out" | Out-File $log -Encoding utf8
+"PATH=$env:Path" | Out-File $log -Append -Encoding utf8
 
 $gpp = $null
 $cmd = Get-Command g++.exe -ErrorAction SilentlyContinue
@@ -33,6 +37,7 @@ if (-not $gpp) {
 }
 
 if (-not $gpp) {
+    'g++ NOT FOUND' | Out-File $log -Append -Encoding utf8
     Write-Host ''
     Write-Host '=================================================='
     Write-Host '  g++ NOT FOUND on this computer.'
@@ -44,5 +49,12 @@ if (-not $gpp) {
 
 Write-Host "compiler: $gpp"
 # -static: the .exe does not need MinGW's DLLs in PATH to start
-& $gpp -fdiagnostics-color=always -g -static $src -o $out
-exit $LASTEXITCODE
+"compiler: $gpp" | Out-File $log -Append -Encoding utf8
+# g++/ld mangle non-ASCII paths (like the Cyrillic user folder) when run
+# from VS Code, so build from the source folder with bare file names.
+Set-Location (Split-Path -Parent $src)
+$res = & $gpp -g -static (Split-Path -Leaf $src) -o (Split-Path -Leaf $out) 2>&1
+$code = $LASTEXITCODE
+$res | ForEach-Object { "$_" } | Tee-Object -FilePath $log -Append | Write-Host
+"exit=$code" | Out-File $log -Append -Encoding utf8
+exit $code
