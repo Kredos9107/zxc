@@ -6,9 +6,15 @@ $log = Join-Path $PSScriptRoot 'last-build.log'
 "$(Get-Date)  src=$src  out=$out" | Out-File $log -Encoding utf8
 "PATH=$env:Path" | Out-File $log -Append -Encoding utf8
 
+# gcc breaks when its own folder has non-ASCII chars (the Cyrillic user
+# folder), so an ASCII location like C:\mingw64 wins over PATH.
 $gpp = $null
-$cmd = Get-Command g++.exe -ErrorAction SilentlyContinue
-if ($cmd) { $gpp = $cmd.Source }
+if (Test-Path 'C:\mingw64\bin\g++.exe') { $gpp = 'C:\mingw64\bin\g++.exe' }
+
+if (-not $gpp) {
+    $cmd = Get-Command g++.exe -ErrorAction SilentlyContinue
+    if ($cmd) { $gpp = $cmd.Source }
+}
 
 if (-not $gpp) {
     $candidates = @(
@@ -53,6 +59,11 @@ Write-Host "compiler: $gpp"
 # g++/ld mangle non-ASCII paths (like the Cyrillic user folder) when run
 # from VS Code, so build from the source folder with bare file names.
 Set-Location (Split-Path -Parent $src)
+# temp files too: keep them out of the non-ASCII user profile
+$tmp = Join-Path (Split-Path -Parent (Split-Path -Parent $gpp)) 'tmp'
+New-Item -ItemType Directory -Force $tmp | Out-Null
+$env:TMP = $tmp; $env:TEMP = $tmp
+$env:Path = (Split-Path -Parent $gpp) + ';' + $env:Path
 $res = & $gpp -g -static (Split-Path -Leaf $src) -o (Split-Path -Leaf $out) 2>&1
 $code = $LASTEXITCODE
 $res | ForEach-Object { "$_" } | Tee-Object -FilePath $log -Append | Write-Host
