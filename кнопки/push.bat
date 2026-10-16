@@ -14,7 +14,7 @@ rem and then finds neither the key nor known_hosts ("authenticity of host
 rem can't be established"). The 8.3 short name of the folder is plain ASCII.
 for %%I in ("%USERPROFILE%") do set "UP=%%~sI"
 set "UP=%UP:\=/%"
-set GIT_SSH_COMMAND=ssh -i "%UP%/.ssh/id_rsa" -o UserKnownHostsFile="%UP%/.ssh/known_hosts"
+set GIT_SSH_COMMAND=ssh -i "%UP%/.ssh/id_rsa" -o UserKnownHostsFile="%UP%/.ssh/known_hosts" -o ServerAliveInterval=15 -o ServerAliveCountMax=8
 
 rem ---- unfinished rebase (a previous pull --rebase stopped on a conflict)? ----
 rem In that state HEAD is detached, BRANCH would be "HEAD" and nothing can be pushed.
