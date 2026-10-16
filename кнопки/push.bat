@@ -16,7 +16,57 @@ for %%I in ("%USERPROFILE%") do set "UP=%%~sI"
 set "UP=%UP:\=/%"
 set GIT_SSH_COMMAND=ssh -i "%UP%/.ssh/id_rsa" -o UserKnownHostsFile="%UP%/.ssh/known_hosts"
 
+rem ---- unfinished rebase (a previous pull --rebase stopped on a conflict)? ----
+rem In that state HEAD is detached, BRANCH would be "HEAD" and nothing can be pushed.
+set "INREBASE="
+for /f "delims=" %%p in ('%GIT% rev-parse --git-path rebase-merge') do if exist "%%p" set INREBASE=1
+for /f "delims=" %%p in ('%GIT% rev-parse --git-path rebase-apply') do if exist "%%p" set INREBASE=1
+if defined INREBASE (
+    echo ------------------------------------------------
+    echo   A rebase from an earlier pull is not finished.
+    echo ------------------------------------------------
+    echo.
+    %GIT% status --short
+    echo.
+    set "UNMERGED="
+    for /f "delims=" %%u in ('%GIT% diff --name-only --diff-filter=U') do set UNMERGED=1
+    if defined UNMERGED (
+        echo   Some files still have conflicts ^(marked UU/AA/DU above^).
+        echo   Fix them, then run push.bat again.
+        echo   To cancel the whole pull instead: git rebase --abort
+        echo.
+        pause
+        exit /b 1
+    )
+    set "ANS="
+    set /p ANS="No conflicts left. Finish the rebase and continue? (y/n): "
+    if /i not "!ANS!"=="y" (
+        echo Aborted. Nothing was changed.
+        echo.
+        pause
+        exit /b 1
+    )
+    %GIT% add -A
+    set GIT_EDITOR=true
+    %GIT% rebase --continue
+    if errorlevel 1 (
+        echo.
+        echo   Could not finish the rebase. Read the message above.
+        echo.
+        pause
+        exit /b 1
+    )
+    echo.
+)
+
 for /f "delims=" %%b in ('%GIT% rev-parse --abbrev-ref HEAD') do set BRANCH=%%b
+if "%BRANCH%"=="HEAD" (
+    echo   HEAD is detached ^(not on a branch^) - cannot push.
+    echo   Open Git Bash and check: git status
+    echo.
+    pause
+    exit /b 1
+)
 
 echo ================================================
 echo   PUSH
