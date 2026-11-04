@@ -1,0 +1,13 @@
+{
+  "review_date": "2026-11-02",
+  "source": "Existing Vortex_v8_доработка, saved 2026-11-02 12:48:27",
+  "backup": "../Старые_версии_и_разработка.zip / до_проверки_v8_2026-11-02/",
+  "changes": [
+    "Dedicated 2 mm LED ground return to J1",
+    "Local 1 mm HW517 control-ground return",
+    "2 mm supply branch rerouted to avoid ground crossings",
+    "Minimum clearance 0.5 mm enforced and violations corrected",
+    "Schematic/PCB metadata synchronized, NC pins marked, symbol library supplied"
+  ],
+  "review": "Проверка_логики.txt"
+}

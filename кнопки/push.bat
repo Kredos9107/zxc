@@ -110,6 +110,10 @@ if errorlevel 1 (
 echo.
 
 :dopush
+set TRY=0
+set "REBASED="
+:pushtry
+set /a TRY+=1
 %GIT% push origin %BRANCH% 2>"%TEMP%\pusherr.txt"
 set PUSHCODE=%ERRORLEVEL%
 type "%TEMP%\pusherr.txt"
@@ -128,6 +132,14 @@ findstr /i /c:"fetch first" "%TEMP%\pusherr.txt" >nul
 if not errorlevel 1 goto :behind
 findstr /i /c:"non-fast-forward" "%TEMP%\pusherr.txt" >nul
 if not errorlevel 1 goto :behind
+
+rem ---- anything else is usually the connection dropping on a big upload ----
+if %TRY% LSS 3 (
+    echo.
+    echo   Push failed, probably the connection dropped. Retry in 5 s ^(attempt %TRY% of 3^)...
+    timeout /t 5 /nobreak >nul
+    goto :pushtry
+)
 
 echo.
 echo ------------------------------------------------
@@ -168,41 +180,35 @@ exit /b 1
 :behind
 echo.
 echo ------------------------------------------------
-echo   REJECTED: the remote has commits you do not
-echo   have locally.
+echo   The remote has commits you do not have locally
+echo   ^(e.g. pushed from another computer^).
+echo   Putting your commits on top of them...
 echo ------------------------------------------------
 echo.
-set "ANS="
-set /p ANS="Rebase local commits on top of remote and retry? (y/n): "
-if /i not "!ANS!"=="y" (
-    echo Aborted. Nothing was changed.
+if defined REBASED (
+    echo   Already did that once and the remote moved again.
+    echo   Run push.bat once more.
     echo.
     pause
     exit /b 1
 )
+set REBASED=1
 
-echo.
 %GIT% pull --rebase origin %BRANCH%
 if errorlevel 1 (
     echo.
     echo   Could not bring in the remote commits.
     echo   Run pull.bat - it explains the reason and can
     echo   fix the common ones - then run push.bat again.
-    echo   (if a rebase was started: git rebase --abort)
+    echo   ^(if a rebase was started: git rebase --abort^)
     echo.
     pause
     exit /b 1
 )
 
 echo.
-%GIT% push origin %BRANCH%
-if errorlevel 1 (
-    echo.
-    echo   Push failed again. Open Git Bash and look manually.
-    echo.
-    pause
-    exit /b 1
-)
+set TRY=0
+goto :pushtry
 
 :ok
 echo.

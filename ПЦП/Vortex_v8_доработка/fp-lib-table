@@ -1,0 +1,1 @@
+(fp_lib_table (version 7) (lib (name "Vortex")(type "KiCad")(uri "${KIPRJMOD}/Vortex.pretty")(options "")(descr "Project module sockets - preliminary")))

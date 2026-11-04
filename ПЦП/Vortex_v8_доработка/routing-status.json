@@ -1,0 +1,63 @@
+{
+  "review_date": "2026-11-02",
+  "functional_nets": 16,
+  "intentional_unconnected_pins": 18,
+  "missing": [],
+  "layer": "B.Cu",
+  "minimum_clearance_mm": 0.5,
+  "widths_mm": {
+    "/+12V": [
+      2.0
+    ],
+    "/+3V3": [
+      0.6
+    ],
+    "/+5V": [
+      1.0
+    ],
+    "/ENC1_CLK": [
+      0.6
+    ],
+    "/ENC1_DT": [
+      0.6
+    ],
+    "/ENC1_SW": [
+      0.6
+    ],
+    "/ENC2_CLK": [
+      0.6
+    ],
+    "/ENC2_DT": [
+      0.6
+    ],
+    "/ENC2_SW": [
+      0.6
+    ],
+    "/ESP_VIN": [
+      1.0
+    ],
+    "/GND": [
+      1.0,
+      2.0
+    ],
+    "/LED_DATA": [
+      0.6
+    ],
+    "/LED_GPIO": [
+      0.6
+    ],
+    "/PUMP_NEG": [
+      2.0
+    ],
+    "/PUMP_POS": [
+      2.0
+    ],
+    "/PUMP_PWM": [
+      0.6
+    ]
+  },
+  "power_paths_2mm_verified": 11,
+  "drc_violations": 0,
+  "schematic_parity_issues": 0,
+  "erc_violations": 0
+}
