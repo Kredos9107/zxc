@@ -1,5 +1,5 @@
 @echo off
-title CONNECT - ssh-agent + Git Bash (Kredos9107/zxc)
+title CONNECT - ssh-agent + Git Bash (zxc)
 
 set "GITDIR=C:\Program Files\Git"
 if not exist "%GITDIR%\git-bash.exe" (

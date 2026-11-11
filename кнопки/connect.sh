@@ -1,12 +1,28 @@
 #!/usr/bin/env bash
-# Поднимает ssh-agent (один на все окна), кладёт в него ключ и проверяет GitHub.
-# Запускается из connect.bat, но можно вызвать и руками:  ./connect.sh
+# Поднимает ssh-agent (один на все окна), кладёт в него ключ аккаунта из github.conf
+# и проверяет GitHub. Запускается из connect.bat, но можно вызвать и руками:  ./connect.sh
 
-KEY="$HOME/.ssh/id_rsa"
+HERE="$(cd "$(dirname "$0")" && pwd)"
+# GH_USER, GH_REPO, SSH_KEY
+eval "$(tr -d '\r' < "$HERE/github.conf" | grep -E '^[A-Z_]+=')"
+KEY="$HOME/.ssh/$SSH_KEY"
+URL="git@github.com:$GH_USER/$GH_REPO.git"
 ENVF="$HOME/.ssh/agent.env"
 
 # скрипт лежит в подпапке "кнопки" - работаем с репозиторием этажом выше
-cd "$(dirname "$0")/.." || exit 1
+cd "$HERE/.." || exit 1
+
+if [ ! -f "$KEY" ]; then
+    echo "Нет ключа $KEY - сначала запусти setup.bat (он создаст ключ и откроет GitHub)."
+    exit 1
+fi
+
+# адрес репозитория и ключ - как в github.conf (в т.ч. для VS Code и обычного git)
+if [ "$(git remote get-url origin 2>/dev/null)" != "$URL" ]; then
+    git remote set-url origin "$URL" 2>/dev/null || git remote add origin "$URL"
+    echo "origin -> $URL"
+fi
+git config core.sshCommand "ssh -o IdentitiesOnly=yes -i ~/.ssh/$SSH_KEY"
 
 # подхватить уже запущенный агент, если он есть
 [ -f "$ENVF" ] && . "$ENVF" >/dev/null 2>&1
@@ -28,10 +44,10 @@ ssh-add -l
 echo
 echo "--- GitHub ---"
 if git ls-remote origin >/dev/null 2>&1; then
-    echo "OK: git@github.com:Kredos9107/zxc.git отвечает, ключ принят"
+    echo "OK: $URL отвечает, ключ принят"
 else
-    echo "ОШИБКА: GitHub не принял ключ."
-    echo "Посмотреть подробности:  ssh -vT git@github.com"
+    echo "ОШИБКА: GitHub не ответил. Проверь, что репозиторий $GH_USER/$GH_REPO существует"
+    echo "и ключ добавлен в аккаунт $GH_USER (setup.bat). Подробности:  ssh -vT git@github.com"
 fi
 
 echo
