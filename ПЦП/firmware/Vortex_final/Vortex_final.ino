@@ -1,0 +1,282 @@
+#include <WiFi.h>
+#include <WebServer.h>
+#include <ESPmDNS.h>
+#include <FastLED.h>
+
+#include <Arduino.h>
+#include <soc/gpio_struct.h>
+
+class Encoder {
+  int clk, dt, sw;
+  volatile uint8_t previous = 0;
+  volatile int8_t quarters = 0;
+  volatile int steps = 0;
+  portMUX_TYPE mux = portMUX_INITIALIZER_UNLOCKED;
+  bool raw = HIGH, stable = HIGH;
+  uint32_t changed = 0;
+  static void ARDUINO_ISR_ATTR interrupt(void *arg) {
+    auto *e = static_cast<Encoder *>(arg);
+    static DRAM_ATTR const int8_t table[16] = {
+      0, -1, 1, 0, 1, 0, 0, -1, -1, 0, 0, 1, 0, 1, -1, 0
+    };
+    portENTER_CRITICAL_ISR(&e->mux);
+    uint32_t levels = GPIO.in;
+    uint8_t next = (((levels >> e->clk) & 1U) << 1) |
+      ((levels >> e->dt) & 1U);
+    if ((next ^ e->previous) == 3) e->quarters = 0;
+    else e->quarters += table[(e->previous << 2) | next];
+    e->previous = next;
+    if (e->quarters >= 4 || e->quarters <= -4) {
+      e->steps += e->quarters > 0 ? 1 : -1;
+      e->quarters = 0;
+    }
+    portEXIT_CRITICAL_ISR(&e->mux);
+  }
+public:
+  Encoder(int c, int d, int s) : clk(c), dt(d), sw(s) {}
+  void begin() {
+    pinMode(clk, INPUT_PULLUP);
+    pinMode(dt, INPUT_PULLUP);
+    pinMode(sw, INPUT_PULLUP);
+    previous = (digitalRead(clk) << 1) | digitalRead(dt);
+    raw = stable = digitalRead(sw);
+    changed = millis();
+    attachInterruptArg(clk, interrupt, this, CHANGE);
+    attachInterruptArg(dt, interrupt, this, CHANGE);
+  }
+  int take() {
+    portENTER_CRITICAL(&mux);
+    int value = steps;
+    steps = 0;
+    portEXIT_CRITICAL(&mux);
+    return value;
+  }
+  bool pressed() {
+    bool next = digitalRead(sw);
+    if (next != raw) { raw = next; changed = millis(); }
+    if (millis() - changed < 30 || stable == raw) return false;
+    stable = raw;
+    return stable == LOW;
+  }
+};
+
+const char PAGE[] PROGMEM = R"HTML(
+<!doctype html><html lang="ru"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Водяной вихрь</title><style>
+:root{color-scheme:dark}*{box-sizing:border-box}body{font:16px system-ui,sans-serif;background:#0d1b2a;color:#e0e6ed;padding:20px;max-width:480px;margin:auto}
+h1{font-size:25px;text-align:center}.card{background:#1b263b;border-radius:16px;padding:20px;margin:18px 0}label{display:block;margin:18px 0 8px}input[type=range]{width:100%;accent-color:#58d2c1;height:32px}button,select{width:100%;padding:14px;font:inherit;border:0;border-radius:10px;background:#415a77;color:white}button.on{background:#238d7f}select{padding:10px}small{display:block;color:#afbfce;line-height:1.5;margin-top:12px}#status{text-align:center;font-size:14px;color:#afbfce;min-height:20px}#hu{appearance:none;height:28px;border-radius:20px;background:linear-gradient(90deg,#f00,#ff0,#0f0,#0ff,#00f,#f0f,#f00)}#hu::-webkit-slider-thumb{appearance:none;width:30px;height:30px;border-radius:50%;background:white;border:3px solid #0d1b2a}#hu::-moz-range-thumb{width:25px;height:25px;border-radius:50%;background:white;border:3px solid #0d1b2a}#sw{height:12px;border-radius:6px;margin:10px 0}fieldset{border:0;padding:0;margin:0;min-width:0}output{font-variant-numeric:tabular-nums}#control{color:#58d2c1}
+</style></head><body><h1>🌀 Водяной вихрь</h1><div id="status">Подключение…</div>
+<fieldset id="controls" disabled><div class="card"><button id="pw" type="button">Насос: выкл</button>
+<label for="sp">Скорость: <output id="sv">50</output>%</label><input id="sp" type="range" min="0" max="100" value="50">
+<small>Первая ручка: скорость. Нажатие: вкл/выкл насоса.</small></div>
+<div class="card"><label for="md">Режим подсветки</label><select id="md"><option value="0">Один цвет</option><option value="1">Радуга</option><option value="2">Цвет по скорости</option><option value="3">Бегущий огонь</option></select>
+<div id="hb"><label for="hu">Цвет</label><input id="hu" type="range" min="0" max="255" value="160"><div id="sw"></div></div>
+<label for="br">Яркость: <output id="bv">39</output>%</label><input id="br" type="range" min="0" max="255" value="100">
+<small>Вторая ручка: <b id="control">яркость</b>.<br>Нажатие переключает яркость и цвет. Режимы — с сайта.<br>Выбор цвета действует в режимах «Один цвет» и «Бегущий огонь».</small></div></fieldset>
+<script>
+const $=id=>document.getElementById(id),pending=new Map();let state=null,busy=false,lastPoll=0;
+function show(){if(!state)return;const on=pending.has('on')?pending.get('on')===1:state.on;$('pw').textContent='Насос: '+(on?'вкл':'выкл');$('pw').className=on?'on':'';$('sv').textContent=$('sp').value;$('bv').textContent=Math.round($('br').value*100/255);$('hb').hidden=!['0','3'].includes($('md').value);$('sw').style.background=`hsl(${$('hu').value*360/256},100%,50%)`;$('control').textContent=state.ctl?'цвет':'яркость'}
+function apply(s){state=s;for(const key of ['sp','br','md','hu'])if(!pending.has(key)&&document.activeElement!==$(key))$(key).value=s[key];$('controls').disabled=false;show()}
+function queue(key,value){pending.set(key,Number(value));if(key==='on'&&state)state.on=Boolean(Number(value));show();tick()}
+for(const key of ['sp','br','md','hu'])$(key).addEventListener(key==='md'?'change':'input',()=>queue(key,$(key).value));
+for(const key of ['sp','br','hu'])$(key).addEventListener('change',()=>$(key).blur());
+$('pw').onclick=()=>queue('on',(pending.has('on')?pending.get('on'):state.on)?0:1);
+async function tick(){if(busy||(!pending.size&&Date.now()-lastPoll<500))return;busy=true;const batch=new Map(pending);pending.clear();try{const path=batch.size?'/set?'+new URLSearchParams(batch):'/state';const response=await fetch(path,{cache:'no-store',signal:AbortSignal.timeout(3000)});if(!response.ok)throw Error(response.status);apply(await response.json());$('status').textContent='На связи · '+location.host}catch(e){$('status').textContent='Связь потеряна · повторное подключение…'}finally{lastPoll=Date.now();busy=false}}
+setInterval(tick,100);tick();
+</script></body></html>
+)HTML";
+
+constexpr int PUMP_PIN = 25;
+constexpr int PUMP_FREQ = 20000;
+constexpr int PUMP_MIN = 148;
+constexpr int PUMP_MAX = 255;
+constexpr int LED_PIN = 23;
+constexpr int NUM_LEDS = 20;
+constexpr char VERSION[] = "v8-final-2026-11-11";
+
+Encoder pumpEncoder(4, 16, 17);
+Encoder lightEncoder(18, 19, 21);
+WebServer server(80);
+CRGB leds[NUM_LEDS];
+bool pumpOn = false;
+int pumpSpeed = 50;
+int pumpDuty = 0;
+int ledBri = 100;
+int ledMode = 0;
+uint8_t ledHue = 160;
+bool colorControl = false;
+bool apStarted = false;
+uint32_t wifiStarted = 0;
+
+void handleState() {
+  char buf[220];
+  snprintf(buf, sizeof(buf),
+    "{\"on\":%s,\"sp\":%d,\"br\":%d,\"md\":%d,\"hu\":%u,\"ctl\":%s,\"duty\":%d,\"version\":\"%s\",\"uptime\":%lu}",
+    pumpOn ? "true" : "false", pumpSpeed, ledBri, ledMode,
+    ledHue, colorControl ? "true" : "false", pumpDuty, VERSION, (unsigned long)millis());
+  server.sendHeader("Cache-Control", "no-store");
+  server.send(200, "application/json", buf);
+}
+
+void handleSet() {
+  const char *keys[] = {"on", "sp", "br", "md", "hu"};
+  int values[5] = {};
+  bool present[5] = {};
+  const int limits[] = {1, 100, 255, 3, 255};
+  for (int k = 0; k < 5; k++) {
+    if (!server.hasArg(keys[k])) continue;
+    String value = server.arg(keys[k]);
+    if (value.isEmpty() || value.length() > 3) {
+      server.send(400, "text/plain", "Invalid value"); return;
+    }
+    for (size_t i = 0; i < value.length(); i++) {
+      if (value[i] < '0' || value[i] > '9') {
+        server.send(400, "text/plain", "Invalid value"); return;
+      }
+    }
+    values[k] = value.toInt();
+    if (values[k] > limits[k]) {
+      server.send(400, "text/plain", "Out of range"); return;
+    }
+    present[k] = true;
+  }
+  if (present[0]) {
+    pumpOn = values[0];
+    if (!pumpOn) { pumpDuty = 0; ledcWrite(PUMP_PIN, 0); }
+  }
+  if (present[1]) pumpSpeed = values[1];
+  if (present[2]) ledBri = values[2];
+  if (present[3]) ledMode = values[3];
+  if (present[4]) ledHue = values[4];
+  handleState();
+}
+
+void updateEncoders() {
+  int change = pumpEncoder.take();
+  if (change) {
+    pumpSpeed = constrain(pumpSpeed + change * 2, 0, 100);
+    Serial.printf("PUMP speed=%d\n", pumpSpeed);
+  }
+  if (pumpEncoder.pressed()) {
+    pumpOn = !pumpOn;
+    if (!pumpOn) { pumpDuty = 0; ledcWrite(PUMP_PIN, 0); }
+    Serial.printf("PUMP on=%d\n", pumpOn);
+  }
+  if (lightEncoder.pressed()) {
+    colorControl = !colorControl;
+    Serial.printf("LIGHT control=%s\n", colorControl ? "color" : "brightness");
+  }
+  change = lightEncoder.take();
+  if (change) {
+    if (colorControl) ledHue = uint8_t(int(ledHue) + change * 4);
+    else ledBri = constrain(ledBri + change * 5, 0, 255);
+    Serial.printf("LIGHT brightness=%d hue=%u\n", ledBri, ledHue);
+  }
+}
+
+void updatePump() {
+  static uint32_t last = 0;
+  if (millis() - last < 15) return;
+  last = millis();
+  int target = pumpOn ? map(pumpSpeed, 0, 100, PUMP_MIN, PUMP_MAX) : 0;
+  if (!target) pumpDuty = 0;
+  else if (pumpDuty < target) pumpDuty = max(pumpDuty + 1, PUMP_MIN);
+  else if (pumpDuty > target) pumpDuty--;
+  ledcWrite(PUMP_PIN, pumpDuty);
+}
+
+void updateLeds() {
+  static uint32_t last = 0;
+  static uint8_t hue = 0, hueStep = 0;
+  static int currentBri = 0;
+  if (millis() - last < 10) return;
+  last = millis();
+  if (currentBri < ledBri) currentBri += max(1, (ledBri - currentBri) / 12);
+  else if (currentBri > ledBri) currentBri -= max(1, (currentBri - ledBri) / 12);
+  if (ledMode == 0) fill_solid(leds, NUM_LEDS, CHSV(ledHue, 255, 255));
+  if (ledMode == 1) {
+    if (++hueStep >= 3) { hueStep = 0; hue++; }
+    fill_rainbow(leds, NUM_LEDS, hue, 255 / NUM_LEDS);
+  }
+  if (ledMode == 2) fill_solid(leds, NUM_LEDS, CHSV(map(pumpSpeed, 0, 100, 160, 0), 255, 255));
+  if (ledMode == 3) {
+    static uint8_t pos = 0, step = 0;
+    if (++step >= 4) { step = 0; pos = (pos + 1) % NUM_LEDS; }
+    fadeToBlackBy(leds, NUM_LEDS, 40);
+    leds[pos] = CHSV(ledHue, 255, 255);
+  }
+  FastLED.setBrightness(fl::dim8_video(currentBri));
+  static CRGB previous[NUM_LEDS];
+  static int previousBri = -1;
+  int brightness = FastLED.getBrightness();
+  if (previousBri == brightness && ::memcmp(leds, previous, sizeof(leds)) == 0) return;
+  ::memcpy(previous, leds, sizeof(leds));
+  previousBri = brightness;
+  FastLED.show();
+}
+
+void updateWiFi() {
+  static uint32_t retry = 0;
+  static bool connected = false;
+  bool now = WiFi.status() == WL_CONNECTED;
+  if (now && !connected) {
+    Serial.print("WIFI http://"); Serial.println(WiFi.localIP());
+  }
+  connected = now;
+  if (!now && !apStarted && millis() - wifiStarted >= 10000) {
+    WiFi.mode(WIFI_AP_STA);
+    apStarted = WiFi.softAP("Vortex", "12345678");
+    WiFi.setTxPower(WIFI_POWER_8_5dBm);
+    Serial.print("AP Vortex http://"); Serial.println(WiFi.softAPIP());
+  }
+  if (!now && millis() - retry >= 30000) {
+    retry = millis();
+    WiFi.reconnect();
+  }
+}
+
+void setup() {
+  pinMode(PUMP_PIN, OUTPUT);
+  digitalWrite(PUMP_PIN, LOW);
+  Serial.begin(115200);
+  delay(200);
+  Serial.printf("VORTEX %s\n", VERSION);
+  if (!ledcAttach(PUMP_PIN, PUMP_FREQ, 8)) {
+    Serial.println("ERROR pump PWM");
+    while (true) delay(1000);
+  }
+  ledcWrite(PUMP_PIN, 0);
+  pumpEncoder.begin();
+  lightEncoder.begin();
+  FastLED.addLeds<WS2811, LED_PIN, BRG>(leds, NUM_LEDS);
+  FastLED.clear(true);
+  WiFi.mode(WIFI_STA);
+  WiFi.setSleep(false);
+  WiFi.setAutoReconnect(true);
+  WiFi.setHostname("vortex");
+  WiFi.begin();
+  WiFi.setTxPower(WIFI_POWER_8_5dBm);
+  wifiStarted = millis();
+  MDNS.begin("vortex");
+  MDNS.addService("http", "tcp", 80);
+  server.on("/", HTTP_GET, []() {
+    server.sendHeader("Cache-Control", "no-store");
+    server.send_P(200, "text/html; charset=utf-8", PAGE);
+  });
+  server.on("/state", HTTP_GET, handleState);
+  server.on("/set", HTTP_GET, handleSet);
+  server.onNotFound([]() { server.send(404, "text/plain", "Not found"); });
+  server.begin();
+  Serial.println("PINS pump=25 LED=23 ENC1=4,16,17 ENC2=18,19,21");
+  Serial.println("READY pump=OFF http://vortex.local");
+}
+
+void loop() {
+  updateEncoders();
+  updatePump();
+  server.handleClient();
+  updateLeds();
+  updateWiFi();
+  delay(1);
+}

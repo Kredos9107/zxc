@@ -1,0 +1,6 @@
+directories:
+  data: C:/Users/Данил/AppData/Local/Arduino15
+  downloads: C:/Users/Данил/AppData/Local/Arduino15/staging
+  user: C:/Users/Данил/Documents/Arduino
+build_cache:
+  path: C:/Users/Данил/zxc/ПЦП/firmware/cache

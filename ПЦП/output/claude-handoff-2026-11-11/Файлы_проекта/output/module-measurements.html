@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Замеры модулей Vortex</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#f3f5f7;color:#192b3b;font:16px system-ui,sans-serif}main{max-width:1080px;margin:auto;padding:24px}h1{font-size:25px;margin:0 0 10px}p{line-height:1.5;margin:8px 0 18px}button,input,select,textarea{font:inherit}button,select,input[type=number],input[type=text]{padding:9px;border:1px solid #b8c4ce;border-radius:7px;background:white;color:inherit}button{cursor:pointer}button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid #4389bd}button.primary{background:#205f91;color:white;border-color:#205f91}.bar{display:flex;flex-wrap:wrap;gap:9px;align-items:center;margin:15px 0}.layout{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(280px,1fr);gap:20px}.panel{background:white;border:1px solid #d4dde4;border-radius:12px;padding:18px;min-width:0}.notice{color:#785016;background:#fff4d7;padding:12px;border-radius:8px}.control{margin:0 0 18px}.control label{display:block;margin-bottom:7px}.pair{display:grid;grid-template-columns:minmax(0,1fr) 88px;gap:12px;align-items:center}input[type=range]{width:100%;accent-color:#205f91;min-height:30px}input[type=number]{width:100%}.full{width:100%}h2{font-size:18px;margin:0 0 16px}svg{display:block;width:100%;height:470px;max-height:65vh}svg text{font-family:system-ui,sans-serif;fill:#192b3b}svg .hole{cursor:pointer}.small{font-size:13px;color:#506579}.status{min-height:24px;color:#205f91}textarea{width:100%;min-height:90px;padding:10px;border:1px solid #b8c4ce;border-radius:7px}details{margin-top:18px}li{margin-bottom:8px}#readout{font-variant-numeric:tabular-nums;line-height:1.6}#problems{color:#a52b20}#pointName{margin-bottom:15px}@media(max-width:700px){main{padding:14px}.layout{grid-template-columns:1fr}svg{height:380px}.panel{padding:14px}}
+</style>
+</head>
+<body><main>
+<h1>Размеры модулей</h1>
+<p>Выбери модуль и отверстие. Двигай ползунки или впиши точные числа. Все размеры в <b>миллиметрах</b>, до <b>центров отверстий</b>.</p>
+<div class="notice">Начальные числа условные, для примера. Замени их своими замерами. Вид сверху, со стороны компонентов.</div>
+<div class="bar"><label for="module">Модуль</label><select id="module"><option value="mos">MOSFET HW-517</option><option value="xl">Преобразователь XL4015</option><option value="enc">Энкодер</option></select><button id="save" class="primary">Скачать замеры</button><button id="savehtml">Сохранить заполненный HTML</button><button id="load">Загрузить замеры</button><input type="file" id="file" accept="application/json,.json" hidden></div>
+<div class="layout"><section class="panel"><h2 id="diagramTitle"></h2><svg id="drawing" role="img" aria-label="Расположение отверстий модуля, вид сверху"></svg><div id="readout"></div><div id="problems" role="alert"></div><p class="small">Ноль — левый нижний угол платы модуля. X — от левого края, Y — от нижнего. Рисунок масштабируется под экран.</p></section>
+<section class="panel"><h2>Габариты платы модуля</h2><div id="sizeControls"></div><h2>Отверстие</h2><label for="point" class="small">Нажми на отверстие на рисунке или выбери его здесь</label><select id="point" class="full"></select><label for="pointName" class="small">Подпись контакта, например PWM или GND</label><input type="text" id="pointName" class="full" maxlength="32"><div id="pointControls"></div><label for="notes">Дополнительные размеры и заметки</label><textarea id="notes" placeholder="Например: высота над основной платой, зазор снизу, выступ деталей за край..."></textarea></section></div>
+<div class="status" id="status" role="status" aria-live="polite"></div>
+<details><summary>Что исправляем в плате</summary><ul><li>Совместить отверстия PWM и GND мосфета с реальным модулем.</li><li>Убрать столкновение джампера с преобразователем.</li><li>Развернуть второй энкодер так, чтобы провода не пришлось перекручивать.</li><li>Перенести неудобные перемычки, в том числе из-под преобразователя.</li><li>Сохранить примерно ту же площадь. Проверить методичку после получения.</li></ul></details>
+</main>
+<script type="application/json" id="saved-state">null</script>
+<script>
+(()=>{
+const $=id=>document.getElementById(id), ns='http://www.w3.org/2000/svg',key='vortex-module-measurements-v1';
+const defaults={version:1,view:'top-components',unit:'mm',modules:{
+mos:{title:'HW-517',w:18,h:34,points:[['P1',4,31],['P2',4,26],['P3',14,31],['P4',14,26],['S1',4.5,5],['S2',7,5],['S3',9.5,5],['S4',12,5],['J1a',6,2],['J1b',11,2]].map(([name,x,y])=>({name,x,y,d:1,edited:[]})),notes:'Укажи, какие отверстия используются для PWM и GND.',edited:[]},
+xl:{title:'XL4015',w:52,h:27,points:[['IN+',2,25],['IN-',2,2],['OUT+',50,25],['OUT-',50,2]].map(([name,x,y])=>({name,x,y,d:1.5,edited:[]})),notes:'Вход слева, выход справа. Измерь также зазор под модулем и высоту над основной платой.',edited:[]},
+enc:{title:'Энкодер',w:20,h:26,points:['GND','+','SW','DT','CLK'].map((name,i)=>({name,x:5+i*2.5,y:2,d:1,edited:[]})),notes:'Со стороны вала, ряд контактов снизу. Проверь ориентацию по своему модулю.',edited:[]}
+}};
+function valid(s){return s&&s.version===1&&s.modules&&['mos','xl','enc'].every(k=>{let m=s.modules[k];return m&&typeof m.title==='string'&&typeof m.notes==='string'&&Number.isFinite(m.w)&&m.w>=1&&m.w<=150&&Number.isFinite(m.h)&&m.h>=1&&m.h<=150&&Array.isArray(m.points)&&m.points.length>0&&m.points.length<=30&&m.points.every(p=>typeof p.name==='string'&&['x','y','d'].every(a=>Number.isFinite(p[a]))&&p.x>=0&&p.x<=150&&p.y>=0&&p.y<=150&&p.d>=0.2&&p.d<=10)})}
+let state=structuredClone(defaults),id='mos',selected=0;
+try{const embedded=JSON.parse($('saved-state').textContent);const stored=JSON.parse(localStorage.getItem(key)||'null');if(valid(embedded))state=embedded;else if(valid(stored))state=stored}catch{}
+function persist(){try{localStorage.setItem(key,JSON.stringify(state))}catch{}$('status').textContent='Изменения сохранены в этом браузере. Чтобы прислать их мне, нажми «Скачать замеры».'}
+function mark(o,k){if(!Array.isArray(o.edited))o.edited=[];if(!o.edited.includes(k))o.edited.push(k)}
+function m(){return state.modules[id]}
+function node(tag,attrs,text){const n=document.createElementNS(ns,tag);for(const [k,v]of Object.entries(attrs))n.setAttribute(k,v);if(text!==undefined)n.textContent=text;$('drawing').appendChild(n);return n}
+function render(){
+const a=m(),p=a.points[selected],width=500,height=450,s=Math.min(360/a.w,335/a.h),x0=(width-a.w*s)/2,y0=395;
+$('drawing').setAttribute('viewBox',`0 0 ${width} ${height}`);$('drawing').replaceChildren();
+node('rect',{x:x0,y:y0-a.h*s,width:a.w*s,height:a.h*s,rx:2,fill:'#dcebf5',stroke:'#356784','stroke-width':2});
+node('text',{x:250,y:25,'text-anchor':'middle','font-size':17},`${a.w} × ${a.h} мм`);
+node('text',{x:250,y:y0-a.h*s+25,'text-anchor':'middle','font-size':14},a.title);
+node('text',{x:x0,y:y0+25,'font-size':13},'(0, 0)');
+node('text',{x:x0+a.w*s,y:y0+25,'text-anchor':'end','font-size':13},'X →');
+node('text',{x:x0-10,y:y0-a.h*s-10,'font-size':13},'Y ↑');
+const px=x0+p.x*s,py=y0-p.y*s;
+node('line',{x1:x0,y1:py,x2:px,y2:py,stroke:'#ac5632','stroke-width':1,'stroke-dasharray':'5 4'});
+node('line',{x1:px,y1:y0,x2:px,y2:py,stroke:'#ac5632','stroke-width':1,'stroke-dasharray':'5 4'});
+a.points.forEach((q,i)=>{let x=x0+q.x*s,y=y0-q.y*s;let c=node('circle',{cx:x,cy:y,r:Math.max(q.d*s/2,6),fill:i===selected?'#e88941':'#fff',stroke:i===selected?'#914008':'#356784','stroke-width':2,class:'hole'});c.addEventListener('click',()=>choose(i));node('text',{x,y:y+(i%2?-13:23),'text-anchor':'middle','font-size':12,'pointer-events':'none'},q.name)});
+$('readout').textContent=`${p.name}: X = ${p.x} мм, Y = ${p.y} мм, Ø = ${p.d} мм`;
+$('problems').textContent=a.points.some(q=>q.x-q.d/2<0||q.x+q.d/2>a.w||q.y-q.d/2<0||q.y+q.d/2>a.h)?'Проверь координаты: одно из отверстий выходит за край модуля.':'';
+}
+function control(parent,label,value,min,max,update){let box=document.createElement('div');box.className='control';let lab=document.createElement('label');lab.textContent=label+' (мм)';let pair=document.createElement('div');pair.className='pair';let r=document.createElement('input'),n=document.createElement('input');r.type='range';n.type='number';r.min=n.min=min;r.max=n.max=max;r.step=n.step='0.05';r.value=n.value=value;r.setAttribute('aria-label',label);n.setAttribute('aria-label',label+' точное значение');let change=(source,other)=>{if(source.value==='')return;let v=Number(source.value);if(!Number.isFinite(v)||v<min||v>max)return;v=Math.round(v*100)/100;other.value=v;update(v);persist();render()};r.oninput=()=>change(r,n);n.oninput=()=>change(n,r);pair.append(r,n);box.append(lab,pair);parent.append(box)}
+function choose(i){selected=i;const a=m(),p=a.points[i];$('point').value=String(i);$('pointName').value=p.name;$('pointControls').replaceChildren();for(const [k,label,max,min]of [['x','X от левого края',150,0],['y','Y от нижнего края',150,0],['d','Диаметр отверстия',10,0.2]])control($('pointControls'),label,p[k],min,max,v=>{p[k]=v;mark(p,k)});render()}
+function loadModule(){const a=m();$('diagramTitle').textContent=a.title+' · вид сверху';$('sizeControls').replaceChildren();for(const [k,label]of [['w','Ширина по X'],['h','Длина по Y']])control($('sizeControls'),label,a[k],1,150,v=>{a[k]=v;mark(a,k)});$('point').replaceChildren(...a.points.map((p,i)=>new Option(p.name,i)));$('notes').value=a.notes;choose(0)}
+$('module').onchange=()=>{id=$('module').value;loadModule()};$('point').onchange=()=>choose(Number($('point').value));$('pointName').oninput=()=>{const name=$('pointName').value;m().points[selected].name=name;$('point').options[selected].textContent=name;mark(m().points[selected],'name');persist();render()};$('notes').oninput=()=>{m().notes=$('notes').value;persist()};
+function download(content,type,name){const url=URL.createObjectURL(new Blob([content],{type})),a=document.createElement('a');a.href=url;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),2000)}
+$('save').onclick=()=>download(JSON.stringify(state,null,2),'application/json','vortex-measurements.json');
+$('savehtml').onclick=()=>{const copy=document.documentElement.cloneNode(true);copy.querySelector('#saved-state').textContent=JSON.stringify(state).replace(/</g,'\\u003c');download('<!doctype html>\n'+copy.outerHTML,'text/html;charset=utf-8','vortex-filled.html');$('status').textContent='Сохранён HTML с текущими замерами. Этот файл можно прислать мне.'};
+$('load').onclick=()=>$('file').click();$('file').onchange=async()=>{const file=$('file').files[0];if(!file)return;try{if(file.size>200000)throw Error();const s=JSON.parse(await file.text());if(!valid(s))throw Error();state=s;persist();loadModule();$('status').textContent='Замеры загружены.'}catch{$('status').textContent='Не удалось загрузить файл. Нужен JSON замеров из этого бланка.'}$('file').value=''};
+loadModule();
+})();
+</script>
+</body></html>

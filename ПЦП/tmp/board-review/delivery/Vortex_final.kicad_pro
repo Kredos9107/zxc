@@ -1,0 +1,33 @@
+{
+  "meta": {
+    "filename": "Vortex_final.kicad_pro",
+    "version": 1
+  },
+  "board": {
+    "design_settings": {
+      "rules": {
+        "min_clearance": 0.6,
+        "min_copper_edge_clearance": 0.5,
+        "min_track_width": 0.6,
+        "min_through_hole_diameter": 1.0
+      }
+    }
+  },
+  "net_settings": {
+    "classes": [
+      {
+        "name": "Default",
+        "clearance": 0.6,
+        "track_width": 0.6,
+        "via_diameter": 1.8,
+        "via_drill": 1.0,
+        "microvia_diameter": 0.3,
+        "microvia_drill": 0.1,
+        "diff_pair_width": 0.6,
+        "diff_pair_gap": 0.5,
+        "diff_pair_via_gap": 0.5
+      }
+    ],
+    "version": 4
+  }
+}

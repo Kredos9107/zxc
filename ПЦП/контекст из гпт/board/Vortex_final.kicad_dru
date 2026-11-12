@@ -1,0 +1,3 @@
+(version 1)
+(rule "Manual clearance 0.6 mm" (constraint clearance (min 0.6mm)))
+(rule "Copper edge 0.5 mm" (constraint edge_clearance (min 0.5mm)))
